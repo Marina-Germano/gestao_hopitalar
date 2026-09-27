@@ -1,69 +1,68 @@
-using GestaoHospitalarApi.Application.DTOs;
-using GestaoHospitalarApi.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using GestaoHospitalarApi.Infra.EF; // Ajuste para o namespace do seu AppDbContext
+using GestaoHospitalarApi.Application.DTOs;
+using GestaoHospitalarApi.Models; // Ajuste para o namespace das suas entidades
 
-namespace GestaoHospitalarApi.Controller
+namespace GestaoHospitalarApi.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class UsuariosController : ControllerBase
     {
-        private readonly IUsuarioService _usuarioService;
+        private readonly AppDbContext _context;
 
-        public UsuariosController(IUsuarioService usuarioService)
+        public UsuariosController(AppDbContext context)
         {
-            _usuarioService = usuarioService;
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            var usuarios = await _usuarioService.GetAllUsuariosAsync();
-            return Ok(usuarios);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var usuario = await _usuarioService.GetUsuarioByIdAsync(id);
-            if (usuario == null)
-                return NotFound(new { message = "Usuário não encontrado" });
-
-            return Ok(usuario);
+            _context = context;
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] UsuarioDTO usuarioDto)
+        public async Task<IActionResult> CadastrarUsuario([FromBody] UsuarioCreateDTO dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var created = await _usuarioService.AddUsuarioAsync(usuarioDto);
-            return CreatedAtAction(nameof(GetById), new { id = created.IdUsuario }, created);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UsuarioDTO usuarioDto)
-        {
-            if (id != usuarioDto.IdUsuario)
-                return BadRequest(new { message = "O ID da URL não corresponde ao ID do corpo da requisição." });
-
             try
             {
-                await _usuarioService.UpdateUsuarioAsync(usuarioDto);
-                return NoContent();
+                // Converte o perfil para maiúsculo para evitar erro no CHECK do banco de dados
+                var perfilValidado = dto.Perfil.Trim().ToUpper();
+
+                var usuario = new Usuario
+                {
+                    Nome = dto.Nome,
+                    Cpf = dto.Cpf,
+                    Nascimento = dto.Nascimento,
+                    Sexo = dto.Sexo?.ToUpper(), // Garante que fique em maiúsculo (MASCULINO, FEMININO, OUTRO)
+                    Telefone = dto.Telefone,
+                    Email = dto.Email,
+                    Rua = dto.Rua,
+                    NumeroCasa = dto.NumeroCasa,
+                    Bairro = dto.Bairro,
+                    Cidade = dto.Cidade,
+                    Estado = dto.Estado,
+                    Cep = dto.Cep,
+                    Login = dto.Login,
+                    Senha = dto.Senha, // Importante: Considere criptografar a senha depois
+                    Perfil = perfilValidado,
+                    Ativo = 1 // 1 para Ativo por padrão
+                };
+
+                _context.Usuario.Add(usuario);
+                await _context.SaveChangesAsync();
+
+                return StatusCode(201, new 
+                { 
+                    mensagem = "Usuário cadastrado com sucesso", 
+                    idUsuario = usuario.IdUsuario,
+                    perfil = usuario.Perfil
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                // Um erro comum aqui será violação de UNIQUE no CPF, Email ou Login
+                return BadRequest(new 
+                { 
+                    mensagem = "Erro ao cadastrar usuário. Verifique se o CPF, E-mail ou Login já estão em uso.", 
+                    detalhe = ex.InnerException?.Message ?? ex.Message 
+                });
             }
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            await _usuarioService.DeleteUsuarioAsync(id);
-            return NoContent();
         }
     }
 }

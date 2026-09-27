@@ -1,105 +1,56 @@
 using GestaoHospitalarApi.Application.DTOs;
-using GestaoHospitalarApi.Models;
-using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Models; // Ajuste para a pasta dos seus models
+using GestaoHospitalarApi.Infra.EF; // Ajuste para a pasta do AppDbContext
 
 namespace GestaoHospitalarApi.Application.Services
 {
     public class UsuarioService : IUsuarioService
     {
-        private readonly IUsuarioRepository _usuarioRepository;
+        private readonly AppDbContext _context;
 
-        public UsuarioService(IUsuarioRepository usuarioRepository)
+        public UsuarioService(AppDbContext context)
         {
-            _usuarioRepository = usuarioRepository;
+            _context = context;
         }
 
-        public async Task<IEnumerable<UsuarioDTO>> GetAllUsuariosAsync()
+        public async Task<UsuarioDTO> AddUsuarioAsync(UsuarioCreateDTO dto)
         {
-            var usuarios = await _usuarioRepository.GetAllAsync();
-            return usuarios.Select(u => new UsuarioDTO
+            // 1. Validação básica (exemplo)
+            var perfilValidado = dto.Perfil.Trim().ToUpper();
+
+            // 2. Mapeamento para a Entidade
+            var usuario = new Usuario
             {
-                IdUsuario = u.IdUsuario,
-                Ativo = u.Ativo ?? 1, // Remova os ?? 1 se o seu DTO e Model baterem direitinho os tipos (int ou int?)
-                Nome = u.Nome,
-                Login = u.Login,
-                Email = u.Email,
-                Perfil = u.Perfil
-            });
-        }
+                Nome = dto.Nome,
+                Cpf = dto.Cpf,
+                Nascimento = dto.Nascimento,
+                Sexo = dto.Sexo?.ToUpper(),
+                Telefone = dto.Telefone,
+                Email = dto.Email,
+                Rua = dto.Rua,
+                NumeroCasa = dto.NumeroCasa,
+                Bairro = dto.Bairro,
+                Cidade = dto.Cidade,
+                Estado = dto.Estado,
+                Cep = dto.Cep,
+                Login = dto.Login,
+                Senha = dto.Senha,
+                Perfil = perfilValidado,
+                Ativo = 1
+            };
 
-        public async Task<UsuarioDTO> GetUsuarioByIdAsync(int id)
-        {
-            var usuario = await _usuarioRepository.GetByIdAsync(id);
-            if (usuario == null) return null;
+            // 3. Salva no banco de dados
+            _context.Usuario.Add(usuario);
+            await _context.SaveChangesAsync();
 
+            // 4. Mapeia a Entidade para o DTO de Resposta (escondendo a senha)
             return new UsuarioDTO
             {
                 IdUsuario = usuario.IdUsuario,
-                Ativo = usuario.Ativo ?? 1,
                 Nome = usuario.Nome,
                 Login = usuario.Login,
-                Email = usuario.Email,
                 Perfil = usuario.Perfil
             };
-        }
-
-        public async Task<UsuarioDTO> AddUsuarioAsync(UsuarioDTO usuarioDto)
-        {
-            var usuario = new Usuario
-            {
-                Ativo = usuarioDto.Ativo,
-                Nome = usuarioDto.Nome,
-                Login = usuarioDto.Login,
-                Senha = usuarioDto.Senha, 
-                Email = usuarioDto.Email,
-                Perfil = usuarioDto.Perfil
-            };
-
-            // Prepara a inserção na memória
-            await _usuarioRepository.AddAsync(usuario);
-            
-            // EXECUTA a ação no banco de dados. É AQUI que o ID será gerado!
-            await _usuarioRepository.SaveChangesAsync(); 
-
-            // Agora o usuário já tem o ID preenchido pelo Entity Framework
-            usuarioDto.IdUsuario = usuario.IdUsuario;
-            
-            return usuarioDto;
-        }
-
-        public async Task UpdateUsuarioAsync(UsuarioDTO usuarioDto)
-        {
-            var usuario = await _usuarioRepository.GetByIdAsync(usuarioDto.IdUsuario);
-            if (usuario == null) throw new Exception("Usuário não encontrado.");
-
-            usuario.Ativo = usuarioDto.Ativo;
-            usuario.Nome = usuarioDto.Nome;
-            usuario.Email = usuarioDto.Email;
-            usuario.Perfil = usuarioDto.Perfil;
-            
-            if (!string.IsNullOrEmpty(usuarioDto.Senha))
-                usuario.Senha = usuarioDto.Senha;
-
-            // Chama o Update (sem await, pois é void no seu GenericRepository)
-            _usuarioRepository.Update(usuario);
-            
-            // Salva as alterações no banco
-            await _usuarioRepository.SaveChangesAsync();
-        }
-
-        public async Task DeleteUsuarioAsync(int id)
-        {
-            // Primeiro, busca a entidade inteira pelo ID
-            var usuario = await _usuarioRepository.GetByIdAsync(id);
-            
-            if (usuario != null)
-            {
-                // Deleta passando o objeto inteiro (sem await, pois é void)
-                _usuarioRepository.Delete(usuario);
-                
-                // Salva a alteração no banco
-                await _usuarioRepository.SaveChangesAsync();
-            }
         }
     }
 }

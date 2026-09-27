@@ -7,6 +7,7 @@ public partial class Paciente
 {
     public int IdPaciente { get; set; }
 
+    public int? IdUsuario { get; set; }
     public int? Ativo { get; set; }
 
     public string Nome { get; set; } = null!;
