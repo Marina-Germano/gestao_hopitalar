@@ -1,15 +1,31 @@
 CREATE DATABASE gestao_hospitalar;
 USE gestao_hospitalar;
 
+CREATE TABLE pessoa (
+    id_pessoa INTEGER PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(150) NOT NULL,
+    cpf VARCHAR(11) UNIQUE CHECK (length(cpf) = 11),
+    nascimento DATE,
+    sexo VARCHAR(10) CHECK (sexo IN ('MASCULINO', 'FEMININO', 'OUTRO')),
+    telefone VARCHAR(20),
+    email VARCHAR(100) UNIQUE,
+    rua VARCHAR(150),
+    numero_casa INTEGER,
+    bairro VARCHAR(100),
+    cidade VARCHAR(100),
+    estado VARCHAR(2),
+    cep VARCHAR(8) CHECK (length(cep) = 8),
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE usuario (
     id_usuario INTEGER PRIMARY KEY AUTO_INCREMENT,
-    ativo INTEGER DEFAULT 1 CHECK (ativo IN (0, 1)),
-    nome VARCHAR(150) NOT NULL,
+    id_pessoa INTEGER NOT NULL UNIQUE,
     login VARCHAR(50) NOT NULL UNIQUE,
     senha VARCHAR(255) NOT NULL,
-    email VARCHAR(100) UNIQUE,
-    perfil VARCHAR(50) NOT NULL CHECK (perfil IN ('ADMIN', 'MEDICO', 'ENFERMEIRO', 'RECEPCAO', 'FINANCEIRO')),
-    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    perfil VARCHAR(50) NOT NULL CHECK (perfil IN ('ADMIN', 'MEDICO', 'ENFERMEIRO', 'RECEPCAO', 'FINANCEIRO', 'PACIENTE')),
+    ativo INTEGER DEFAULT 1 CHECK (ativo IN (0, 1)),
+    FOREIGN KEY (id_pessoa) REFERENCES pessoa(id_pessoa)
 );
 
 
@@ -25,7 +41,6 @@ CREATE TABLE convenio (
     percentual_cobertura DECIMAL(5, 2)
 );
 
-
 CREATE TABLE especialidade (
     id_especialidade INTEGER PRIMARY KEY AUTO_INCREMENT,
     descricao_especialidade VARCHAR(100) NOT NULL
@@ -33,12 +48,8 @@ CREATE TABLE especialidade (
 
 CREATE TABLE medico (
     id_medico INTEGER PRIMARY KEY AUTO_INCREMENT,
-    ativo INTEGER DEFAULT 1 CHECK (ativo IN (0, 1)),
-    id_especialidade INTEGER NOT NULL,
     id_usuario INTEGER UNIQUE, -- Vínculo opcional com a tabela usuario
-    nome VARCHAR(150) NOT NULL,
-    telefone VARCHAR(20),
-    email VARCHAR(100),
+    id_especialidade INTEGER NOT NULL,
     crm VARCHAR(20) UNIQUE NOT NULL,
     honorario DECIMAL(10, 2),
     FOREIGN KEY (id_especialidade) REFERENCES especialidade(id_especialidade),
@@ -53,28 +64,21 @@ CREATE TABLE escala_medica (
     hora_inicio VARCHAR(5) NOT NULL, -- Formato 'HH:MM'
     hora_fim VARCHAR(5) NOT NULL,    -- Formato 'HH:MM'
     is_plantao INTEGER DEFAULT 0 CHECK (is_plantao IN (0, 1)),
+    
     FOREIGN KEY (id_medico) REFERENCES medico(id_medico)
 );
 
 
+
 CREATE TABLE paciente (
     id_paciente INTEGER PRIMARY KEY AUTO_INCREMENT,
+    id_pessoa INTEGER NOT NULL UNIQUE,
     ativo INTEGER DEFAULT 1 CHECK (ativo IN (0, 1)),
-    nome VARCHAR(150) NOT NULL,
-    cpf VARCHAR(11) UNIQUE CHECK (length(cpf) = 11),
-    sexo VARCHAR(10) CHECK (sexo IN ('MASCULINO', 'FEMININO', 'OUTRO')),
-    nascimento DATE,
     alergias TEXT,
     tipo_sanguineo VARCHAR(5),
     historico_clinico TEXT,
-    telefone VARCHAR(20),
-    rua VARCHAR(150),
-    numero_casa INTEGER,
-    bairro VARCHAR(100),
-    cidade VARCHAR(100),
-    estado VARCHAR(2),
-    cep VARCHAR(8) CHECK (length(cep) = 8),
-    nome_responsavel VARCHAR(150)
+    nome_responsavel VARCHAR(150),
+    FOREIGN KEY (id_pessoa) REFERENCES pessoa(id_pessoa)
 );
 
 
@@ -289,3 +293,61 @@ CREATE TABLE log_prontuario (
     descricao TEXT,
     FOREIGN KEY (id_prontuario) REFERENCES prontuario(id_prontuario)
 );
+
+
+
+-- 1. ESPECIALIDADES
+INSERT INTO especialidade (descricao_especialidade) VALUES
+('Cardiologia'),
+('Pediatria'),
+('Ortopedia'),
+('Neurologia'),
+('Ginecologia e Obstetrícia');
+
+-- 2. CONVÊNIOS
+INSERT INTO convenio (nome_convenio, tipo_leito, cobre_internacao, cobre_exames, cobre_cirurgia, limite_medicamento, percentual_cobertura, ativo) VALUES
+('Unimed', 'PREMIUM', 1, 1, 1, 5000.00, 100.00, 1),
+('Bradesco Saúde', 'PRIVADO', 1, 1, 1, 3500.00, 80.00, 1),
+('Amil', 'COMUM', 1, 1, 0, 2000.00, 70.00, 1),
+('SulAmérica', 'PREMIUM', 1, 1, 1, 10000.00, 100.00, 1),
+('SUS - Sistema Único de Saúde', 'COMUM', 1, 1, 1, 0.00, 100.00, 1);
+
+-- 3. EXAMES
+INSERT INTO exame (nome, valor, descricao) VALUES
+('Hemograma Completo', 35.00, 'Avaliação de células sanguíneas (hemácias, leucócitos, plaquetas)'),
+('Raio-X de Tórax', 85.00, 'Radiografia da região torácica'),
+('Tomografia Computadorizada de Crânio', 350.00, 'Exame de imagem detalhado da estrutura cerebral'),
+('Eletrocardiograma (ECG)', 60.00, 'Avaliação da atividade elétrica do coração'),
+('Glicemia em Jejum', 20.00, 'Medição da taxa de glicose no sangue');
+
+-- 4. ALMOXARIFADO (Insumos, EPIs e Medicamentos no estoque)
+INSERT INTO almoxarifado (nome, categoria, descricao, quantidade, unidade, valor_unitario, estoque_minimo, lote, validade) VALUES
+('Dipirona Sódica 500mg/ml', 'MEDICAMENTO', 'Analgésico e antipirético injetável', 500, 'AMPOLA', 2.50, 50, 'LOTE2026A', '2027-12-31'),
+('Paracetamol 750mg', 'MEDICAMENTO', 'Analgésico e antipirético em comprimidos', 1000, 'COMPRIMIDO', 0.80, 100, 'LOTE2026B', '2028-06-30'),
+('Soro Fisiológico 0,9% 500ml', 'INSUMO', 'Solução salina estéril para reidratação e diluição', 300, 'FRASCO', 6.00, 40, 'LOTE2026C', '2027-08-15'),
+('Seringa Descartável 5ml', 'DESCARTAVEL', 'Seringa estéril com agulha', 2000, 'UNIDADE', 0.50, 200, 'LOTE2026D', '2029-01-01'),
+('Luva de Procedimento M', 'EPI', 'Luva de látex para procedimentos não cirúrgicos', 1500, 'PAR', 0.30, 300, 'LOTE2026E', '2028-10-10');
+
+-- 5. MEDICAMENTO (Atrelados aos IDs correspondentes da tabela Almoxarifado)
+INSERT INTO medicamento (id_almoxarifado, principio_ativo, contraindicacoes) VALUES
+(1, 'Dipirona Sódica', 'Alergia a pirazolonas, gravidez no primeiro trimestre'),
+(2, 'Paracetamol', 'Insuficiência hepática grave, hipersensibilidade'),
+(3, 'Cloreto de Sódio 0,9%', 'Hipernatremia, retenção de líquidos grave'),
+(4, 'Insumo Médico', 'Não aplicável'),
+(5, 'EPI Hospitalar', 'Alergia ao látex');
+
+-- 6. LEITOS
+INSERT INTO leito (numero, ala, andar, data_higienizacao, situacao) VALUES
+('101', 'UTI Adulto', '1º Andar', CURRENT_TIMESTAMP, 'VAGO'),
+('102', 'UTI Adulto', '1º Andar', CURRENT_TIMESTAMP, 'VAGO'),
+('201', 'Enfermaria Masculina', '2º Andar', CURRENT_TIMESTAMP, 'VAGO'),
+('202', 'Enfermaria Feminina', '2º Andar', CURRENT_TIMESTAMP, 'VAGO'),
+('301', 'Apartamento Particular', '3º Andar', CURRENT_TIMESTAMP, 'VAGO');
+
+-- 7. SALAS
+INSERT INTO sala (nome, tipo, status) VALUES
+('Consultório 01', 'Atendimento Clínico', 'LIVRE'),
+('Consultório 02', 'Atendimento Pediatria', 'LIVRE'),
+('Sala de Triagem', 'Triagem / Enfermagem', 'LIVRE'),
+('Sala de Sutura', 'Procedimentos', 'LIVRE'),
+('Bloco Cirúrgico A', 'Cirurgia', 'LIVRE');

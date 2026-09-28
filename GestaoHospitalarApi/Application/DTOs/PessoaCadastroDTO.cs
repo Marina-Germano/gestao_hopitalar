@@ -1,10 +1,9 @@
-namespace GestaoHospitalarApi.DTOs
+namespace GestaoHospitalarApi.Application.DTOs
 {
-    public class PacienteCreateDTO
+    public class PessoaCadastroDto
     {
-        // Dados de Usuario
         public string Nome { get; set; } = string.Empty;
-        public string Cpf { get; set; } = string.Empty;
+        public string? Cpf { get; set; }
         public DateTime? Nascimento { get; set; }
         public string? Sexo { get; set; }
         public string? Telefone { get; set; }
@@ -15,13 +14,5 @@ namespace GestaoHospitalarApi.DTOs
         public string? Cidade { get; set; }
         public string? Estado { get; set; }
         public string? Cep { get; set; }
-        public string Login { get; set; } = string.Empty;
-        public string Senha { get; set; } = string.Empty;
-
-        // Dados de Paciente
-        public string? Alergias { get; set; }
-        public string? TipoSanguineo { get; set; }
-        public string? HistoricoClinico { get; set; }
-        public string? NomeResponsavel { get; set; }
     }
 }

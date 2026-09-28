@@ -4,7 +4,6 @@ namespace GestaoHospitalarApi.Application.Services
 {
     public interface IUsuarioService
     {
-        // O método recebe um CreateDTO e devolve um UsuarioDTO
-        Task<UsuarioDTO> AddUsuarioAsync(UsuarioCreateDTO dto);
+        Task<UsuarioDTO> AddUsuarioAsync(UsuarioCadastroDto dto);
     }
 }

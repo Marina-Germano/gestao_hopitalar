@@ -13,7 +13,7 @@ public partial class SolicitacaoExame
 
     public int IdMedico { get; set; }
 
-    public DateTime? DataSolicitacao { get; set; }
+    public DateTime DataSolicitacao { get; set; }
 
     public string? StatusExame { get; set; }
 

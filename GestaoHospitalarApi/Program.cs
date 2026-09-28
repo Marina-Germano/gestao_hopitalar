@@ -5,12 +5,6 @@ using GestaoHospitalarApi.Infra.EF;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-
-// =========== CONFIGURAÇÃO DO SWAGGER ===========
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 
 // =========== INJEÇÃO DE DEPENDÊNCIA ===========
 // Aplicação
@@ -30,7 +24,9 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
+// =========== CONFIGURAÇÃO DO SWAGGER ===========
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 

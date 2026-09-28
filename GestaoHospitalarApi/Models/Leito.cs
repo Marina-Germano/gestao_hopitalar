@@ -13,7 +13,7 @@ public partial class Leito
 
     public string? Andar { get; set; }
 
-    public DateTime? DataHigienizacao { get; set; }
+    public DateTime DataHigienizacao { get; set; }
 
     public string? Situacao { get; set; }
 

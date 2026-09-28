@@ -11,7 +11,7 @@ public partial class Auditorium
 
     public string? Auditor { get; set; }
 
-    public DateTime? DataAuditoria { get; set; }
+    public DateTime DataAuditoria { get; set; }
 
     public string? StatusAuditoria { get; set; }
 

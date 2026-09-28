@@ -1,7 +1,7 @@
+using GestaoHospitalarApi.Application.DTOs;
+using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using GestaoHospitalarApi.Infra.EF; // Ajuste para o seu namespace
-using GestaoHospitalarApi.DTOs;
-using GestaoHospitalarApi.Models; // Ajuste para o seu namespace
 
 namespace GestaoHospitalarApi.Controllers
 {
@@ -9,27 +9,47 @@ namespace GestaoHospitalarApi.Controllers
     [Route("api/[controller]")]
     public class PacientesController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IGenericRepository<Paciente> _pacienteRepository;
 
-        public PacientesController(AppDbContext context)
+        public PacientesController(IGenericRepository<Paciente> pacienteRepository)
         {
-            _context = context;
+            _pacienteRepository = pacienteRepository;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var pacientes = await _pacienteRepository.GetAllAsync();
+            return Ok(pacientes);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var paciente = await _pacienteRepository.GetByIdAsync(id);
+            if (paciente == null)
+                return NotFound(new { mensagem = "Paciente não encontrado." });
+
+            return Ok(paciente);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CadastrarPaciente([FromBody] PacienteCreateDTO dto)
+        public async Task<IActionResult> Create([FromBody] PacienteCadastroDto dto)
         {
-            // Inicia uma transação: se falhar o paciente, não salva o usuário pela metade
-            using var transaction = await _context.Database.BeginTransactionAsync();
-
-            try
+            var paciente = new Paciente
             {
-                // 1. Cria o Usuário base
-                var usuario = new Usuario
+                Ativo = 1,
+                Alergias = dto.Alergias,
+                TipoSanguineo = dto.TipoSanguineo,
+                HistoricoClinico = dto.HistoricoClinico,
+                NomeResponsavel = dto.NomeResponsavel,
+                IdPessoaNavigation = new Pessoa
                 {
                     Nome = dto.Nome,
                     Cpf = dto.Cpf,
-                    Nascimento = dto.Nascimento,
+                    Nascimento = dto.Nascimento.HasValue
+                        ? DateOnly.FromDateTime(dto.Nascimento.Value)
+                        : null,
                     Sexo = dto.Sexo,
                     Telefone = dto.Telefone,
                     Email = dto.Email,
@@ -38,39 +58,63 @@ namespace GestaoHospitalarApi.Controllers
                     Bairro = dto.Bairro,
                     Cidade = dto.Cidade,
                     Estado = dto.Estado,
-                    Cep = dto.Cep,
-                    Login = dto.Login,
-                    Senha = dto.Senha, // Dica: No futuro, aplique um Hash aqui (ex: BCrypt)
-                    Perfil = "PACIENTE",
-                    Ativo = 1
-                };
+                    Cep = dto.Cep
+                }
+            };
 
-                _context.Usuario.Add(usuario);
-                await _context.SaveChangesAsync(); // Salva para gerar o IdUsuario
+            await _pacienteRepository.AddAsync(paciente);
+            await _pacienteRepository.SaveChangesAsync();
 
-                // 2. Cria o Paciente vinculado ao Usuário
-                var paciente = new Paciente
-                {
-                    IdUsuario = usuario.IdUsuario,
-                    Ativo = 1,
-                    Alergias = dto.Alergias,
-                    TipoSanguineo = dto.TipoSanguineo,
-                    HistoricoClinico = dto.HistoricoClinico,
-                    NomeResponsavel = dto.NomeResponsavel
-                };
+            return StatusCode(201, new { mensagem = "Paciente cadastrado com sucesso", idPaciente = paciente.IdPaciente });
+        }
 
-                _context.Paciente.Add(paciente);
-                await _context.SaveChangesAsync();
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] PacienteCadastroDto dto)
+        {
+            var paciente = await _pacienteRepository.GetByIdAsync(id);
+            if (paciente == null)
+                return NotFound(new { mensagem = "Paciente não encontrado." });
 
-                await transaction.CommitAsync(); // Confirma tudo no banco
+            paciente.Alergias = dto.Alergias;
+            paciente.TipoSanguineo = dto.TipoSanguineo;
+            paciente.HistoricoClinico = dto.HistoricoClinico;
+            paciente.NomeResponsavel = dto.NomeResponsavel;
 
-                return StatusCode(201, new { mensagem = "Paciente cadastrado com sucesso", idPaciente = paciente.IdPaciente });
-            }
-            catch (Exception ex)
+            if (paciente.IdPessoaNavigation != null)
             {
-                await transaction.RollbackAsync(); // Desfaz tudo em caso de erro
-                return BadRequest(new { mensagem = "Erro ao cadastrar paciente", erro = ex.Message });
+                paciente.IdPessoaNavigation.Nome = dto.Nome;
+                paciente.IdPessoaNavigation.Cpf = dto.Cpf;
+                paciente.IdPessoaNavigation.Nascimento = dto.Nascimento.HasValue
+                        ? DateOnly.FromDateTime(dto.Nascimento.Value)
+                        : null;
+                paciente.IdPessoaNavigation.Sexo = dto.Sexo;
+                paciente.IdPessoaNavigation.Telefone = dto.Telefone;
+                paciente.IdPessoaNavigation.Email = dto.Email;
+                paciente.IdPessoaNavigation.Rua = dto.Rua;
+                paciente.IdPessoaNavigation.NumeroCasa = dto.NumeroCasa;
+                paciente.IdPessoaNavigation.Bairro = dto.Bairro;
+                paciente.IdPessoaNavigation.Cidade = dto.Cidade;
+                paciente.IdPessoaNavigation.Estado = dto.Estado;
+                paciente.IdPessoaNavigation.Cep = dto.Cep;
             }
+
+            _pacienteRepository.Update(paciente);
+            await _pacienteRepository.SaveChangesAsync();
+
+            return Ok(new { mensagem = "Paciente atualizado com sucesso." });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var paciente = await _pacienteRepository.GetByIdAsync(id);
+            if (paciente == null)
+                return NotFound(new { mensagem = "Paciente não encontrado." });
+
+            _pacienteRepository.Delete(paciente);
+            await _pacienteRepository.SaveChangesAsync();
+
+            return Ok(new { mensagem = "Paciente removido com sucesso." });
         }
     }
 }

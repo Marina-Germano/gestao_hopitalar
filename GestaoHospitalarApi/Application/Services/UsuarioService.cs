@@ -1,53 +1,55 @@
 using GestaoHospitalarApi.Application.DTOs;
-using GestaoHospitalarApi.Models; // Ajuste para a pasta dos seus models
-using GestaoHospitalarApi.Infra.EF; // Ajuste para a pasta do AppDbContext
+using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Models;
 
 namespace GestaoHospitalarApi.Application.Services
 {
     public class UsuarioService : IUsuarioService
     {
-        private readonly AppDbContext _context;
+        private readonly IGenericRepository<Usuario> _usuarioRepository;
 
-        public UsuarioService(AppDbContext context)
+        public UsuarioService(IGenericRepository<Usuario> usuarioRepository)
         {
-            _context = context;
+            _usuarioRepository = usuarioRepository;
         }
 
-        public async Task<UsuarioDTO> AddUsuarioAsync(UsuarioCreateDTO dto)
+        public async Task<UsuarioDTO> AddUsuarioAsync(UsuarioCadastroDto dto)
         {
-            // 1. Validação básica (exemplo)
             var perfilValidado = dto.Perfil.Trim().ToUpper();
 
-            // 2. Mapeamento para a Entidade
+            // Instancia o Usuario com a Pessoa vinculada em IdPessoaNavigation
             var usuario = new Usuario
             {
-                Nome = dto.Nome,
-                Cpf = dto.Cpf,
-                Nascimento = dto.Nascimento,
-                Sexo = dto.Sexo?.ToUpper(),
-                Telefone = dto.Telefone,
-                Email = dto.Email,
-                Rua = dto.Rua,
-                NumeroCasa = dto.NumeroCasa,
-                Bairro = dto.Bairro,
-                Cidade = dto.Cidade,
-                Estado = dto.Estado,
-                Cep = dto.Cep,
                 Login = dto.Login,
                 Senha = dto.Senha,
                 Perfil = perfilValidado,
-                Ativo = 1
+                Ativo = 1,
+                IdPessoaNavigation = new Pessoa
+                {
+                    Nome = dto.Nome,
+                    Cpf = dto.Cpf,
+                    Nascimento = dto.Nascimento.HasValue
+                        ? DateOnly.FromDateTime(dto.Nascimento.Value)
+                        : null,
+                    Sexo = dto.Sexo?.ToUpper(),
+                    Telefone = dto.Telefone,
+                    Email = dto.Email,
+                    Rua = dto.Rua,
+                    NumeroCasa = dto.NumeroCasa,
+                    Bairro = dto.Bairro,
+                    Cidade = dto.Cidade,
+                    Estado = dto.Estado,
+                    Cep = dto.Cep
+                }
             };
 
-            // 3. Salva no banco de dados
-            _context.Usuario.Add(usuario);
-            await _context.SaveChangesAsync();
+            await _usuarioRepository.AddAsync(usuario);
+            await _usuarioRepository.SaveChangesAsync();
 
-            // 4. Mapeia a Entidade para o DTO de Resposta (escondendo a senha)
             return new UsuarioDTO
             {
                 IdUsuario = usuario.IdUsuario,
-                Nome = usuario.Nome,
+                Nome = usuario.IdPessoaNavigation.Nome,
                 Login = usuario.Login,
                 Perfil = usuario.Perfil
             };

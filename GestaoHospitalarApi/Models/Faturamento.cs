@@ -23,7 +23,7 @@ public partial class Faturamento
 
     public string? StatusPagamento { get; set; }
 
-    public DateTime? DataFechamento { get; set; }
+    public DateTime DataFechamento { get; set; }
 
     public string? Observacao { get; set; }
 

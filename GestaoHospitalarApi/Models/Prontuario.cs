@@ -21,7 +21,7 @@ public partial class Prontuario
 
     public string? Evolucao { get; set; }
 
-    public DateTime? DataAbertura { get; set; }
+    public DateTime DataAbertura { get; set; }
 
     public string? StatusProntuario { get; set; }
 

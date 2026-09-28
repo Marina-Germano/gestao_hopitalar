@@ -13,7 +13,7 @@ public partial class ConsumoItem
 
     public int Quantidade { get; set; }
 
-    public DateTime? DataConsumo { get; set; }
+    public DateTime DataConsumo { get; set; }
 
     public string? Observacao { get; set; }
 

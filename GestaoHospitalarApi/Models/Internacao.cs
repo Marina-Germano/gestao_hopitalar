@@ -11,7 +11,7 @@ public partial class Internacao
 
     public int IdLeito { get; set; }
 
-    public DateTime? DataEntrada { get; set; }
+    public DateTime DataEntrada { get; set; }
 
     public DateTime? DataAlta { get; set; }
 

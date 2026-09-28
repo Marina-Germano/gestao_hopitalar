@@ -1,7 +1,8 @@
-﻿
-using GestaoHospitalarApi.Models;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-
+using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
+using GestaoHospitalarApi.Models;
 namespace GestaoHospitalarApi.Infra.EF;
 
 public partial class AppDbContext : DbContext
@@ -15,56 +16,58 @@ public partial class AppDbContext : DbContext
     {
     }
 
-    public virtual DbSet<Agendamento> Agendamento { get; set; }
+    public virtual DbSet<Agendamento> Agendamentos { get; set; }
 
-    public virtual DbSet<Almoxarifado> Almoxarifado { get; set; }
+    public virtual DbSet<Almoxarifado> Almoxarifados { get; set; }
 
     public virtual DbSet<Auditorium> Auditoria { get; set; }
 
-    public virtual DbSet<ConsumoItem> ConsumoItem { get; set; }
+    public virtual DbSet<ConsumoItem> ConsumoItems { get; set; }
 
-    public virtual DbSet<Convenio> Convenio { get; set; }
+    public virtual DbSet<Convenio> Convenios { get; set; }
 
-    public virtual DbSet<EscalaMedica> EscalaMedica { get; set; }
+    public virtual DbSet<EscalaMedica> EscalaMedicas { get; set; }
 
-    public virtual DbSet<Especialidade> Especialidade { get; set; }
+    public virtual DbSet<Especialidade> Especialidades { get; set; }
 
-    public virtual DbSet<Exame> Exame { get; set; }
+    public virtual DbSet<Exame> Exames { get; set; }
 
-    public virtual DbSet<Faturamento> Faturamento { get; set; }
+    public virtual DbSet<Faturamento> Faturamentos { get; set; }
 
-    public virtual DbSet<InteracaoMedicamentosa> InteracaoMedicamentosa { get; set; }
+    public virtual DbSet<InteracaoMedicamentosa> InteracaoMedicamentosas { get; set; }
 
-    public virtual DbSet<Internacao> Internacao { get; set; }
+    public virtual DbSet<Internacao> Internacaos { get; set; }
 
-    public virtual DbSet<Leito> Leito { get; set; }
+    public virtual DbSet<Leito> Leitos { get; set; }
 
-    public virtual DbSet<LogProntuario> LogProntuario { get; set; }
+    public virtual DbSet<LogProntuario> LogProntuarios { get; set; }
 
-    public virtual DbSet<Medicamento> Medicamento { get; set; }
+    public virtual DbSet<Medicamento> Medicamentos { get; set; }
 
-    public virtual DbSet<Medico> Medico { get; set; }
+    public virtual DbSet<Medico> Medicos { get; set; }
 
-    public virtual DbSet<Paciente> Paciente { get; set; }
+    public virtual DbSet<Paciente> Pacientes { get; set; }
 
-    public virtual DbSet<PacienteConvenio> PacienteConvenio { get; set; }
+    public virtual DbSet<PacienteConvenio> PacienteConvenios { get; set; }
 
-    public virtual DbSet<Prescricao> Prescricao { get; set; }
+    public virtual DbSet<Pessoa> Pessoas { get; set; }
 
-    public virtual DbSet<Prontuario> Prontuario { get; set; }
+    public virtual DbSet<Prescricao> Prescricaos { get; set; }
 
-    public virtual DbSet<Sala> Sala { get; set; }
+    public virtual DbSet<Prontuario> Prontuarios { get; set; }
 
-    public virtual DbSet<SolicitacaoExame> SolicitacaoExame { get; set; }
+    public virtual DbSet<Sala> Salas { get; set; }
 
-    public virtual DbSet<Triagem> Triagem { get; set; }
+    public virtual DbSet<SolicitacaoExame> SolicitacaoExames { get; set; }
 
-    public virtual DbSet<Usuario> Usuario { get; set; }
+    public virtual DbSet<Triagem> Triagems { get; set; }
+
+    public virtual DbSet<Usuario> Usuarios { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .UseCollation("utf8mb4_uca1400_ai_ci")
+            .UseCollation("utf8mb4_general_ci")
             .HasCharSet("utf8mb4");
 
         modelBuilder.Entity<Agendamento>(entity =>
@@ -83,6 +86,8 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("int(11)")
                 .HasColumnName("id_agendamento");
             entity.Property(e => e.DataHora)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("current_timestamp()")
                 .HasColumnType("timestamp")
                 .HasColumnName("data_hora");
             entity.Property(e => e.IdMedico)
@@ -489,6 +494,8 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(10)
                 .HasColumnName("andar");
             entity.Property(e => e.DataHigienizacao)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("current_timestamp()")
                 .HasColumnType("timestamp")
                 .HasColumnName("data_higienizacao");
             entity.Property(e => e.Numero)
@@ -573,16 +580,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdMedico)
                 .HasColumnType("int(11)")
                 .HasColumnName("id_medico");
-            entity.Property(e => e.Ativo)
-                .HasDefaultValueSql("'1'")
-                .HasColumnType("int(11)")
-                .HasColumnName("ativo");
             entity.Property(e => e.Crm)
                 .HasMaxLength(20)
                 .HasColumnName("crm");
-            entity.Property(e => e.Email)
-                .HasMaxLength(100)
-                .HasColumnName("email");
             entity.Property(e => e.Honorario)
                 .HasPrecision(10, 2)
                 .HasColumnName("honorario");
@@ -592,12 +592,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdUsuario)
                 .HasColumnType("int(11)")
                 .HasColumnName("id_usuario");
-            entity.Property(e => e.Nome)
-                .HasMaxLength(150)
-                .HasColumnName("nome");
-            entity.Property(e => e.Telefone)
-                .HasMaxLength(20)
-                .HasColumnName("telefone");
 
             entity.HasOne(d => d.IdEspecialidadeNavigation).WithMany(p => p.Medicos)
                 .HasForeignKey(d => d.IdEspecialidade)
@@ -615,7 +609,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("paciente");
 
-            entity.HasIndex(e => e.Cpf, "cpf").IsUnique();
+            entity.HasIndex(e => e.IdPessoa, "id_pessoa").IsUnique();
 
             entity.Property(e => e.IdPaciente)
                 .HasColumnType("int(11)")
@@ -627,46 +621,23 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("'1'")
                 .HasColumnType("int(11)")
                 .HasColumnName("ativo");
-            entity.Property(e => e.Bairro)
-                .HasMaxLength(100)
-                .HasColumnName("bairro");
-            entity.Property(e => e.Cep)
-                .HasMaxLength(8)
-                .HasColumnName("cep");
-            entity.Property(e => e.Cidade)
-                .HasMaxLength(100)
-                .HasColumnName("cidade");
-            entity.Property(e => e.Cpf)
-                .HasMaxLength(11)
-                .HasColumnName("cpf");
-            entity.Property(e => e.Estado)
-                .HasMaxLength(2)
-                .HasColumnName("estado");
             entity.Property(e => e.HistoricoClinico)
                 .HasColumnType("text")
                 .HasColumnName("historico_clinico");
-            entity.Property(e => e.Nascimento).HasColumnName("nascimento");
-            entity.Property(e => e.Nome)
-                .HasMaxLength(150)
-                .HasColumnName("nome");
+            entity.Property(e => e.IdPessoa)
+                .HasColumnType("int(11)")
+                .HasColumnName("id_pessoa");
             entity.Property(e => e.NomeResponsavel)
                 .HasMaxLength(150)
                 .HasColumnName("nome_responsavel");
-            entity.Property(e => e.NumeroCasa)
-                .HasColumnType("int(11)")
-                .HasColumnName("numero_casa");
-            entity.Property(e => e.Rua)
-                .HasMaxLength(150)
-                .HasColumnName("rua");
-            entity.Property(e => e.Sexo)
-                .HasMaxLength(10)
-                .HasColumnName("sexo");
-            entity.Property(e => e.Telefone)
-                .HasMaxLength(20)
-                .HasColumnName("telefone");
             entity.Property(e => e.TipoSanguineo)
                 .HasMaxLength(5)
                 .HasColumnName("tipo_sanguineo");
+
+            entity.HasOne(d => d.IdPessoaNavigation).WithOne(p => p.Paciente)
+                .HasForeignKey<Paciente>(d => d.IdPessoa)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("paciente_ibfk_1");
         });
 
         modelBuilder.Entity<PacienteConvenio>(entity =>
@@ -706,6 +677,59 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.IdPaciente)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("paciente_convenio_ibfk_1");
+        });
+
+        modelBuilder.Entity<Pessoa>(entity =>
+        {
+            entity.HasKey(e => e.IdPessoa).HasName("PRIMARY");
+
+            entity.ToTable("pessoa");
+
+            entity.HasIndex(e => e.Cpf, "cpf").IsUnique();
+
+            entity.HasIndex(e => e.Email, "email").IsUnique();
+
+            entity.Property(e => e.IdPessoa)
+                .HasColumnType("int(11)")
+                .HasColumnName("id_pessoa");
+            entity.Property(e => e.Bairro)
+                .HasMaxLength(100)
+                .HasColumnName("bairro");
+            entity.Property(e => e.Cep)
+                .HasMaxLength(8)
+                .HasColumnName("cep");
+            entity.Property(e => e.Cidade)
+                .HasMaxLength(100)
+                .HasColumnName("cidade");
+            entity.Property(e => e.Cpf)
+                .HasMaxLength(11)
+                .HasColumnName("cpf");
+            entity.Property(e => e.DataCriacao)
+                .HasDefaultValueSql("current_timestamp()")
+                .HasColumnType("timestamp")
+                .HasColumnName("data_criacao");
+            entity.Property(e => e.Email)
+                .HasMaxLength(100)
+                .HasColumnName("email");
+            entity.Property(e => e.Estado)
+                .HasMaxLength(2)
+                .HasColumnName("estado");
+            entity.Property(e => e.Nascimento).HasColumnName("nascimento");
+            entity.Property(e => e.Nome)
+                .HasMaxLength(150)
+                .HasColumnName("nome");
+            entity.Property(e => e.NumeroCasa)
+                .HasColumnType("int(11)")
+                .HasColumnName("numero_casa");
+            entity.Property(e => e.Rua)
+                .HasMaxLength(150)
+                .HasColumnName("rua");
+            entity.Property(e => e.Sexo)
+                .HasMaxLength(10)
+                .HasColumnName("sexo");
+            entity.Property(e => e.Telefone)
+                .HasMaxLength(20)
+                .HasColumnName("telefone");
         });
 
         modelBuilder.Entity<Prescricao>(entity =>
@@ -960,7 +984,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("usuario");
 
-            entity.HasIndex(e => e.Email, "email").IsUnique();
+            entity.HasIndex(e => e.IdPessoa, "id_pessoa").IsUnique();
 
             entity.HasIndex(e => e.Login, "login").IsUnique();
 
@@ -971,25 +995,23 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("'1'")
                 .HasColumnType("int(11)")
                 .HasColumnName("ativo");
-            entity.Property(e => e.DataCriacao)
-                .HasDefaultValueSql("current_timestamp()")
-                .HasColumnType("timestamp")
-                .HasColumnName("data_criacao");
-            entity.Property(e => e.Email)
-                .HasMaxLength(100)
-                .HasColumnName("email");
+            entity.Property(e => e.IdPessoa)
+                .HasColumnType("int(11)")
+                .HasColumnName("id_pessoa");
             entity.Property(e => e.Login)
                 .HasMaxLength(50)
                 .HasColumnName("login");
-            entity.Property(e => e.Nome)
-                .HasMaxLength(150)
-                .HasColumnName("nome");
             entity.Property(e => e.Perfil)
                 .HasMaxLength(50)
                 .HasColumnName("perfil");
             entity.Property(e => e.Senha)
                 .HasMaxLength(255)
                 .HasColumnName("senha");
+
+            entity.HasOne(d => d.IdPessoaNavigation).WithOne(p => p.Usuario)
+                .HasForeignKey<Usuario>(d => d.IdPessoa)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("usuario_ibfk_1");
         });
 
         OnModelCreatingPartial(modelBuilder);

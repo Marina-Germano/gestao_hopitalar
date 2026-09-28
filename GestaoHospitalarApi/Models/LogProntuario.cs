@@ -11,7 +11,7 @@ public partial class LogProntuario
 
     public string? Responsavel { get; set; }
 
-    public DateTime? DataAlteracao { get; set; }
+    public DateTime DataAlteracao { get; set; }
 
     public string? Descricao { get; set; }
 

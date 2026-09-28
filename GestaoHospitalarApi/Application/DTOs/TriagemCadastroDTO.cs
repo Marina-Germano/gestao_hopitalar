@@ -1,7 +1,8 @@
-namespace GestaoHospitalarApi.DTOs
+namespace GestaoHospitalarApi.Application.DTOs
 {
-    public class TriagemCreateDTO
+    public class TriagemCadastroDto
     {
+        // Dados da Triagem
         public int IdPaciente { get; set; }
         public string? ResponsavelTriagem { get; set; }
         public string? Pressao { get; set; }
@@ -14,5 +15,10 @@ namespace GestaoHospitalarApi.DTOs
         public string? Alergias { get; set; }
         public string? Observacoes { get; set; }
         public string? Internacao { get; set; } // SIM ou NAO
+
+        // Dados Opcionais do Convênio (preenchidos na tela de Triagem)
+        public int? IdConvenio { get; set; }
+        public string? NumeroCarteira { get; set; }
+        public DateTime? ValidadeConvenio { get; set; }
     }
 }

@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GestaoHospitalarApi.Infra.EF;
-using GestaoHospitalarApi.DTOs;
+using GestaoHospitalarApi.Application.DTOs;
+using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace GestaoHospitalarApi.Controllers
 {
@@ -10,22 +9,43 @@ namespace GestaoHospitalarApi.Controllers
     [Route("api/[controller]")]
     public class TriagensController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IGenericRepository<Triagem> _triagemRepository;
+        private readonly IGenericRepository<Paciente> _pacienteRepository;
+        private readonly IGenericRepository<PacienteConvenio> _pacienteConvenioRepository;
 
-        public TriagensController(AppDbContext context)
+        public TriagensController(
+            IGenericRepository<Triagem> triagemRepository, 
+            IGenericRepository<Paciente> pacienteRepository,
+            IGenericRepository<PacienteConvenio> pacienteConvenioRepository)
         {
-            _context = context;
+            _triagemRepository = triagemRepository;
+            _pacienteRepository = pacienteRepository;
+            _pacienteConvenioRepository = pacienteConvenioRepository;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var triagens = await _triagemRepository.GetAllAsync();
+            return Ok(triagens);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var triagem = await _triagemRepository.GetByIdAsync(id);
+            if (triagem == null)
+                return NotFound(new { mensagem = "Triagem não encontrada." });
+
+            return Ok(triagem);
         }
 
         [HttpPost]
-        public async Task<IActionResult> RegistrarTriagem([FromBody] TriagemCreateDTO dto)
+        public async Task<IActionResult> Create([FromBody] TriagemCadastroDto dto)
         {
-            // Verifica se o paciente realmente existe
-            var pacienteExiste = await _context.Paciente.AnyAsync(p => p.IdPaciente == dto.IdPaciente);
-            if (!pacienteExiste)
-            {
-                return NotFound(new { mensagem = "Paciente não encontrado no sistema." });
-            }
+            var paciente = await _pacienteRepository.GetByIdAsync(dto.IdPaciente);
+            if (paciente == null)
+                return NotFound(new { mensagem = "Paciente informado não foi encontrado." });
 
             var triagem = new Triagem
             {
@@ -43,10 +63,66 @@ namespace GestaoHospitalarApi.Controllers
                 Internacao = dto.Internacao
             };
 
-            _context.Triagem.Add(triagem);
-            await _context.SaveChangesAsync();
+            await _triagemRepository.AddAsync(triagem);
+
+            // Se as informações de convênio foram enviadas na triagem, vincula na tabela paciente_convenio
+            if (dto.IdConvenio.HasValue && dto.IdConvenio.Value > 0)
+            {
+                var pacienteConvenio = new PacienteConvenio
+                {
+                    IdPaciente = dto.IdPaciente,
+                    IdConvenio = dto.IdConvenio.Value,
+                    NumeroCarteira = dto.NumeroCarteira,
+                    Validade = dto.ValidadeConvenio.HasValue
+                        ? DateOnly.FromDateTime(dto.ValidadeConvenio.Value)
+                        : DateOnly.FromDateTime(DateTime.Now.AddYears(1)),
+                    Ativo = 1
+                };
+
+                await _pacienteConvenioRepository.AddAsync(pacienteConvenio);
+            }
+
+            await _triagemRepository.SaveChangesAsync();
 
             return StatusCode(201, new { mensagem = "Triagem registrada com sucesso", idTriagem = triagem.IdTriagem });
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] TriagemCadastroDto dto)
+        {
+            var triagem = await _triagemRepository.GetByIdAsync(id);
+            if (triagem == null)
+                return NotFound(new { mensagem = "Triagem não encontrada." });
+
+            triagem.ResponsavelTriagem = dto.ResponsavelTriagem;
+            triagem.Pressao = dto.Pressao;
+            triagem.Temperatura = dto.Temperatura;
+            triagem.FrequenciaCardiaca = dto.FrequenciaCardiaca;
+            triagem.Saturacao = dto.Saturacao;
+            triagem.EscalaDor = dto.EscalaDor;
+            triagem.Risco = dto.Risco;
+            triagem.Queixa = dto.Queixa;
+            triagem.Alergias = dto.Alergias;
+            triagem.Observacoes = dto.Observacoes;
+            triagem.Internacao = dto.Internacao;
+
+            _triagemRepository.Update(triagem);
+            await _triagemRepository.SaveChangesAsync();
+
+            return Ok(new { mensagem = "Triagem atualizada com sucesso." });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var triagem = await _triagemRepository.GetByIdAsync(id);
+            if (triagem == null)
+                return NotFound(new { mensagem = "Triagem não encontrada." });
+
+            _triagemRepository.Delete(triagem);
+            await _triagemRepository.SaveChangesAsync();
+
+            return Ok(new { mensagem = "Triagem removida com sucesso." });
         }
     }
 }
