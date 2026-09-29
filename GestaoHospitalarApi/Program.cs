@@ -22,6 +22,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // 2. Registrar o Repositório Genérico
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirTudo", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 // =========== CONFIGURAÇÃO DO SWAGGER ===========
@@ -35,7 +45,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCors("PermitirTudo");
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
