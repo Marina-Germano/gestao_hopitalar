@@ -23,7 +23,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
+
 builder.Services.AddEndpointsApiExplorer();
+
 // =========== CONFIGURAÇÃO DO SWAGGER ===========
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
