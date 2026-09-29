@@ -25,10 +25,10 @@ namespace GestaoHospitalarApi.Controllers
 
             if (_cache.TryGetValue(cacheKey, out IEnumerable<Paciente>? pacientesCache))
             {
-                 return Ok(pacientesCache);
+                return Ok(pacientesCache);
             }
 
-             var pacientes = await _pacienteRepository.GetAllAsync();
+            var pacientes = await _pacienteRepository.GetAllAsync();
 
             _cache.Set(
                 cacheKey,
