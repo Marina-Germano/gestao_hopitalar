@@ -33,7 +33,10 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
+
 builder.Services.AddEndpointsApiExplorer();
+
 // =========== CONFIGURAÇÃO DO SWAGGER ===========
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

@@ -2,6 +2,7 @@ using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GestaoHospitalarApi.Controllers
 {
@@ -10,16 +11,31 @@ namespace GestaoHospitalarApi.Controllers
     public class PacientesController : ControllerBase
     {
         private readonly IGenericRepository<Paciente> _pacienteRepository;
+        private readonly IMemoryCache _cache;
 
-        public PacientesController(IGenericRepository<Paciente> pacienteRepository)
+        public PacientesController(IGenericRepository<Paciente> pacienteRepository,IMemoryCache cache)
         {
             _pacienteRepository = pacienteRepository;
+            _cache = cache;
         }
-
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var pacientes = await _pacienteRepository.GetAllAsync();
+            const string cacheKey = "pacientes";
+
+            if (_cache.TryGetValue(cacheKey, out IEnumerable<Paciente>? pacientesCache))
+            {
+                 return Ok(pacientesCache);
+            }
+
+             var pacientes = await _pacienteRepository.GetAllAsync();
+
+            _cache.Set(
+                cacheKey,
+                pacientes,
+                TimeSpan.FromMinutes(5)
+            );
+
             return Ok(pacientes);
         }
 
@@ -65,6 +81,9 @@ namespace GestaoHospitalarApi.Controllers
             await _pacienteRepository.AddAsync(paciente);
             await _pacienteRepository.SaveChangesAsync();
 
+            _cache.Remove("pacientes");
+
+
             return StatusCode(201, new { mensagem = "Paciente cadastrado com sucesso", idPaciente = paciente.IdPaciente });
         }
 
@@ -101,6 +120,8 @@ namespace GestaoHospitalarApi.Controllers
             _pacienteRepository.Update(paciente);
             await _pacienteRepository.SaveChangesAsync();
 
+            _cache.Remove("pacientes");
+
             return Ok(new { mensagem = "Paciente atualizado com sucesso." });
         }
 
@@ -113,6 +134,8 @@ namespace GestaoHospitalarApi.Controllers
 
             _pacienteRepository.Delete(paciente);
             await _pacienteRepository.SaveChangesAsync();
+
+            _cache.Remove("pacientes");
 
             return Ok(new { mensagem = "Paciente removido com sucesso." });
         }
