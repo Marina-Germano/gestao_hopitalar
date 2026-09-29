@@ -14,15 +14,43 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         _context = context;
         _dbSet = _context.Set<T>();
     }
- 
-    public async Task<IEnumerable<T>> GetAllAsync()
+
+    public async Task<IEnumerable<T>> GetAllAsync(
+        params Expression<Func<T, object>>[] includes)
     {
-        return await _dbSet.ToListAsync();
+        IQueryable<T> query = _dbSet;
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+
+        return await query.ToListAsync();
     }
 
-    public async Task<T?> GetByIdAsync(int id)
+    public async Task<T?> GetByIdAsync(
+        int id,
+        params Expression<Func<T, object>>[] includes)
     {
-        return await _dbSet.FindAsync(id);
+        IQueryable<T> query = _dbSet;
+
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+
+        var entityType = _context.Model.FindEntityType(typeof(T));
+
+        var primaryKey = entityType?.FindPrimaryKey();
+
+        if (primaryKey == null)
+            return null;
+
+        var keyProperty = primaryKey.Properties.First();
+
+        return await query.FirstOrDefaultAsync(
+            e => Microsoft.EntityFrameworkCore.EF.Property<int>(e, keyProperty.Name) == id
+        );
     }
 
     public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)

@@ -2,6 +2,8 @@ using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
+using GestaoHospitalarApi.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GestaoHospitalarApi.Controllers
 {
@@ -10,30 +12,60 @@ namespace GestaoHospitalarApi.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly IGenericRepository<Usuario> _usuarioRepository;
+        private readonly IUsuarioService _usuarioService;
 
-        public UsuariosController(IGenericRepository<Usuario> usuarioRepository)
+        public UsuariosController(
+            IGenericRepository<Usuario> usuarioRepository,
+            IUsuarioService usuarioService)
         {
             _usuarioRepository = usuarioRepository;
+            _usuarioService = usuarioService;
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<IActionResult> GetAll()
         {
-            var usuarios = await _usuarioRepository.GetAllAsync();
-            return Ok(usuarios);
-        }
+            var usuarios = await _usuarioRepository.GetAllAsync(
+                usuario => usuario.IdPessoaNavigation
+            );
+
+            var usuariosDto = usuarios.Select(usuario => new UsuarioDTO
+            {
+                IdUsuario = usuario.IdUsuario,
+                Nome = usuario.IdPessoaNavigation?.Nome ?? string.Empty,
+                Login = usuario.Login,
+                Perfil = usuario.Perfil
+            });
+
+            return Ok(usuariosDto);
+        }       
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> GetById(int id)
         {
-            var usuario = await _usuarioRepository.GetByIdAsync(id);
+            var usuario = await _usuarioRepository.GetByIdAsync(
+                id,
+                usuario => usuario.IdPessoaNavigation
+            );
+
             if (usuario == null)
                 return NotFound(new { mensagem = "Usuário não encontrado." });
 
-            return Ok(usuario);
+            var usuarioDto = new UsuarioDTO
+            {
+                IdUsuario = usuario.IdUsuario,
+                Nome = usuario.IdPessoaNavigation?.Nome ?? string.Empty,
+                Login = usuario.Login,
+                Perfil = usuario.Perfil
+            };
+
+            return Ok(usuarioDto);
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Create([FromBody] UsuarioCadastroDto dto)
         {
             var usuario = new Usuario
@@ -68,6 +100,7 @@ namespace GestaoHospitalarApi.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> Update(int id, [FromBody] UsuarioCadastroDto dto)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
@@ -103,6 +136,7 @@ namespace GestaoHospitalarApi.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
             var usuario = await _usuarioRepository.GetByIdAsync(id);
@@ -113,6 +147,21 @@ namespace GestaoHospitalarApi.Controllers
             await _usuarioRepository.SaveChangesAsync();
 
             return Ok(new { mensagem = "Usuário removido com sucesso." });
+        }
+
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] UsuarioLoginDTO dto)
+        {
+            var token = await _usuarioService.LoginAsync(dto);
+
+            if (token == null)
+                return Unauthorized(new { mensagem = "Login ou senha inválidos." });
+
+            return Ok(new
+            {
+                token = token
+            });
         }
     }
 }
