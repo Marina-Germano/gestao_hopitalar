@@ -2,32 +2,33 @@ using GestaoHospitalarApi.Application.Authentication;
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace GestaoHospitalarApi.Application.Services
 {
     public class UsuarioService : IUsuarioService
     {
         private readonly IGenericRepository<Usuario> _usuarioRepository;
-
         private readonly JwtService _jwtService;
+        private readonly IPasswordHasher<Usuario> _passwordHasher;
 
         public UsuarioService(
             IGenericRepository<Usuario> usuarioRepository,
-            JwtService jwtService)
+            JwtService jwtService,
+            IPasswordHasher<Usuario> passwordHasher)
         {
             _usuarioRepository = usuarioRepository;
             _jwtService = jwtService;
+            _passwordHasher = passwordHasher;
         }
 
         public async Task<UsuarioDTO> AddUsuarioAsync(UsuarioCadastroDto dto)
         {
             var perfilValidado = dto.Perfil.Trim().ToUpper();
 
-            // Instancia o Usuario com a Pessoa vinculada em IdPessoaNavigation
             var usuario = new Usuario
             {
                 Login = dto.Login,
-                Senha = dto.Senha,
                 Perfil = perfilValidado,
                 Ativo = 1,
                 IdPessoaNavigation = new Pessoa
@@ -48,6 +49,11 @@ namespace GestaoHospitalarApi.Application.Services
                     Cep = dto.Cep
                 }
             };
+
+            usuario.Senha = _passwordHasher.HashPassword(
+                usuario,
+                dto.Senha
+            );
 
             await _usuarioRepository.AddAsync(usuario);
             await _usuarioRepository.SaveChangesAsync();
@@ -72,7 +78,13 @@ namespace GestaoHospitalarApi.Application.Services
             if (usuario == null)
                 return null;
 
-            if (usuario.Senha != dto.Senha)
+            var resultado = _passwordHasher.VerifyHashedPassword(
+                usuario,
+                usuario.Senha,
+                dto.Senha
+            );
+
+            if (resultado == PasswordVerificationResult.Failed)
                 return null;
 
             if (usuario.Ativo != 1)

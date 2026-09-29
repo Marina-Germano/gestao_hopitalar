@@ -3,7 +3,9 @@ using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Application.Services;
 using GestaoHospitalarApi.Infra.EF;
 using GestaoHospitalarApi.Application.Authentication;
+using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -41,6 +43,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Aplicação
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 
 // 1. Configurar Conexão do MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

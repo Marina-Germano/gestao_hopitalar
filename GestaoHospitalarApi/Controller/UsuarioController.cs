@@ -5,6 +5,7 @@ using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using GestaoHospitalarApi.Application.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace GestaoHospitalarApi.Controllers
 {
@@ -14,13 +15,16 @@ namespace GestaoHospitalarApi.Controllers
     {
         private readonly IGenericRepository<Usuario> _usuarioRepository;
         private readonly IUsuarioService _usuarioService;
+        private readonly IPasswordHasher<Usuario> _passwordHasher;
 
         public UsuariosController(
             IGenericRepository<Usuario> usuarioRepository,
-            IUsuarioService usuarioService)
+            IUsuarioService usuarioService,
+            IPasswordHasher<Usuario> passwordHasher)
         {
             _usuarioRepository = usuarioRepository;
             _usuarioService = usuarioService;
+            _passwordHasher = passwordHasher;
         }
 
         [HttpGet]
@@ -72,7 +76,6 @@ namespace GestaoHospitalarApi.Controllers
             var usuario = new Usuario
             {
                 Login = dto.Login,
-                Senha = dto.Senha,
                 Perfil = dto.Perfil.ToUpper(),
                 Ativo = 1,
                 IdPessoaNavigation = new Pessoa
@@ -94,6 +97,11 @@ namespace GestaoHospitalarApi.Controllers
                 }
             };
 
+            usuario.Senha = _passwordHasher.HashPassword(
+                usuario,
+                dto.Senha
+            );
+
             await _usuarioRepository.AddAsync(usuario);
             await _usuarioRepository.SaveChangesAsync();
 
@@ -109,7 +117,10 @@ namespace GestaoHospitalarApi.Controllers
                 return NotFound(ResultWrapper<Usuario>.Erro("Usuário não encontrado."));
 
             usuario.Login = dto.Login;
-            usuario.Senha = dto.Senha;
+            usuario.Senha = _passwordHasher.HashPassword(
+                usuario,
+                dto.Senha
+            );
             usuario.Perfil = dto.Perfil.ToUpper();
 
             if (usuario.IdPessoaNavigation != null)
