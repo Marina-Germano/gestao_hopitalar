@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var leitos = await _repository.GetAllAsync();
-            return Ok(leitos);
+            return Ok(ResultWrapper<IEnumerable<Leito>>.Ok(leitos, "Leitos recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -28,9 +29,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var leito = await _repository.GetByIdAsync(id);
             if (leito == null)
-                return NotFound(new { mensagem = "Leito não encontrado." });
+                return NotFound(ResultWrapper<Leito>.Erro("Leito não encontrado."));
 
-            return Ok(leito);
+            return Ok(ResultWrapper<Leito>.Ok(leito, "Leito recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -48,7 +49,7 @@ namespace GestaoHospitalarApi.Controllers
             await _repository.AddAsync(leito);
             await _repository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Leito cadastrado com sucesso", idLeito = leito.IdLeito });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Leito cadastrado com sucesso", idLeito = leito.IdLeito }, "Leito cadastrado com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -56,7 +57,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var leito = await _repository.GetByIdAsync(id);
             if (leito == null)
-                return NotFound(new { mensagem = "Leito não encontrado." });
+                return NotFound(ResultWrapper<Leito>.Erro("Leito não encontrado."));
 
             leito.Numero = dto.Numero;
             leito.Ala = dto.Ala;
@@ -67,7 +68,7 @@ namespace GestaoHospitalarApi.Controllers
             _repository.Update(leito);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Leito atualizado com sucesso." });
+            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Leito atualizado com sucesso." }, "Leito atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -75,12 +76,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var leito = await _repository.GetByIdAsync(id);
             if (leito == null)
-                return NotFound(new { mensagem = "Leito não encontrado." });
+                return NotFound(ResultWrapper<Leito>.Erro("Leito não encontrado."));
 
             _repository.Delete(leito);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Leito removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Leito removido com sucesso."));
         }
     }
 }

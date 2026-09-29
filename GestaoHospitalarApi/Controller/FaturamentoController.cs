@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,7 +37,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var internacao = await _internacaoRepository.GetByIdAsync(idInternacao);
             if (internacao == null)
-                return NotFound(new { mensagem = "Internação não encontrada." });
+                return NotFound(ResultWrapper<Internacao>.Erro("Internação não encontrada."));
 
             var relatorio = new FaturamentoRelatorioDto
             {
@@ -98,7 +99,7 @@ namespace GestaoHospitalarApi.Controllers
 
             relatorio.ValorTotalGeral = relatorio.ValorTotalDiarias + relatorio.ValorTotalConsumo + relatorio.ValorTotalExames;
 
-            return Ok(relatorio);
+            return Ok(ResultWrapper<FaturamentoRelatorioDto>.Ok(relatorio, "Faturamento calculado com sucesso."));
         }
     }
 }

@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -25,7 +26,7 @@ namespace GestaoHospitalarApi.Controllers
 
             if (_cache.TryGetValue(cacheKey, out IEnumerable<Paciente>? pacientesCache))
             {
-                return Ok(pacientesCache);
+                return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientesCache, "Pacientes recuperados com sucesso."));
             }
 
             var pacientes = await _pacienteRepository.GetAllAsync();
@@ -36,7 +37,7 @@ namespace GestaoHospitalarApi.Controllers
                 TimeSpan.FromMinutes(5)
             );
 
-            return Ok(pacientes);
+            return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientes, "Pacientes recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -44,9 +45,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var paciente = await _pacienteRepository.GetByIdAsync(id);
             if (paciente == null)
-                return NotFound(new { mensagem = "Paciente não encontrado." });
+                return NotFound(ResultWrapper<Paciente>.Erro("Paciente não encontrado."));
 
-            return Ok(paciente);
+            return Ok(ResultWrapper<Paciente>.Ok(paciente, "Paciente encontrado com sucesso."));
         }
 
         [HttpPost]
@@ -84,7 +85,7 @@ namespace GestaoHospitalarApi.Controllers
             _cache.Remove("pacientes");
 
 
-            return StatusCode(201, new { mensagem = "Paciente cadastrado com sucesso", idPaciente = paciente.IdPaciente });
+            return StatusCode(201, ResultWrapper<Paciente>.Ok(paciente, "Paciente cadastrado com sucesso."));
         }
 
         [HttpPut("{id}")]
@@ -92,7 +93,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var paciente = await _pacienteRepository.GetByIdAsync(id);
             if (paciente == null)
-                return NotFound(new { mensagem = "Paciente não encontrado." });
+                return NotFound(ResultWrapper<Paciente>.Erro("Paciente não encontrado."));
 
             paciente.Alergias = dto.Alergias;
             paciente.TipoSanguineo = dto.TipoSanguineo;
@@ -122,7 +123,7 @@ namespace GestaoHospitalarApi.Controllers
 
             _cache.Remove("pacientes");
 
-            return Ok(new { mensagem = "Paciente atualizado com sucesso." });
+            return Ok(ResultWrapper<Paciente>.Ok(paciente, "Paciente atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -130,14 +131,36 @@ namespace GestaoHospitalarApi.Controllers
         {
             var paciente = await _pacienteRepository.GetByIdAsync(id);
             if (paciente == null)
-                return NotFound(new { mensagem = "Paciente não encontrado." });
+                return NotFound(ResultWrapper<Paciente>.Erro("Paciente não encontrado."));
 
             _pacienteRepository.Delete(paciente);
             await _pacienteRepository.SaveChangesAsync();
 
             _cache.Remove("pacientes");
 
-            return Ok(new { mensagem = "Paciente removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Paciente removido com sucesso."));
+        }
+
+        [HttpGet("buscar")]
+        public async Task<IActionResult> GetByName([FromQuery] string nome)
+        {
+            if (string.IsNullOrWhiteSpace(nome))
+            {
+                return BadRequest(ResultWrapper<string>.Erro("O parâmetro 'nome' não pode ser vazio."));
+            }
+
+            // O EF Core vai transformar isso num SELECT com JOIN e LIKE %nome% automaticamente!
+            var pacientes = await _pacienteRepository.FindAsync(p => 
+                p.IdPessoaNavigation != null && 
+                p.IdPessoaNavigation.Nome.Contains(nome));
+
+            if (!pacientes.Any())
+            {
+                // Retorna sucesso, mas com a lista vazia e uma mensagem amigável
+                return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientes, "Nenhum paciente encontrado com este nome."));
+            }
+
+            return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientes, "Paciente(s) encontrado(s) com sucesso."));
         }
     }
 }

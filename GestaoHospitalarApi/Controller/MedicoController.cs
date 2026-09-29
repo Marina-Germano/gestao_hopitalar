@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var medicos = await _medicoRepository.GetAllAsync();
-            return Ok(medicos);
+            return Ok(ResultWrapper<IEnumerable<Medico>>.Ok(medicos, "Médicos recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -28,9 +29,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var medico = await _medicoRepository.GetByIdAsync(id);
             if (medico == null)
-                return NotFound(new { mensagem = "Médico não encontrado." });
+                return NotFound(ResultWrapper<Medico>.Erro("Médico não encontrado."));
 
-            return Ok(medico);
+            return Ok(ResultWrapper<Medico>.Ok(medico, "Médico recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -70,7 +71,7 @@ namespace GestaoHospitalarApi.Controllers
             await _medicoRepository.AddAsync(medico);
             await _medicoRepository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Médico cadastrado com sucesso", idMedico = medico.IdMedico });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Médico cadastrado com sucesso", idMedico = medico.IdMedico }, "Médico cadastrado com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -78,7 +79,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var medico = await _medicoRepository.GetByIdAsync(id);
             if (medico == null)
-                return NotFound(new { mensagem = "Médico não encontrado." });
+                return NotFound(ResultWrapper<Medico>.Erro("Médico não encontrado."));
 
             medico.IdEspecialidade = dto.IdEspecialidade;
             medico.Crm = dto.Crm;
@@ -111,7 +112,7 @@ namespace GestaoHospitalarApi.Controllers
             _medicoRepository.Update(medico);
             await _medicoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Médico atualizado com sucesso." });
+            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Médico atualizado com sucesso." }, "Médico atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -119,12 +120,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var medico = await _medicoRepository.GetByIdAsync(id);
             if (medico == null)
-                return NotFound(new { mensagem = "Médico não encontrado." });
+                return NotFound(ResultWrapper<Medico>.Erro("Médico não encontrado."));
 
             _medicoRepository.Delete(medico);
             await _medicoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Médico removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Médico removido com sucesso."));
         }
     }
 }

@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var especialidades = await _repository.GetAllAsync();
-            return Ok(especialidades);
+            return Ok(ResultWrapper<IEnumerable<Especialidade>>.Ok(especialidades, "Especialidades recuperadas com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -28,9 +29,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var especialidade = await _repository.GetByIdAsync(id);
             if (especialidade == null)
-                return NotFound(new { mensagem = "Especialidade não encontrada." });
+                return NotFound(ResultWrapper<Especialidade>.Erro("Especialidade não encontrada."));
 
-            return Ok(especialidade);
+            return Ok(ResultWrapper<Especialidade>.Ok(especialidade, "Especialidade recuperada com sucesso."));
         }
 
         [HttpPost]
@@ -44,7 +45,7 @@ namespace GestaoHospitalarApi.Controllers
             await _repository.AddAsync(especialidade);
             await _repository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Especialidade cadastrada com sucesso", idEspecialidade = especialidade.IdEspecialidade });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Especialidade cadastrada com sucesso", idEspecialidade = especialidade.IdEspecialidade }, "Especialidade cadastrada com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -52,14 +53,14 @@ namespace GestaoHospitalarApi.Controllers
         {
             var especialidade = await _repository.GetByIdAsync(id);
             if (especialidade == null)
-                return NotFound(new { mensagem = "Especialidade não encontrada." });
+                return NotFound(ResultWrapper<Especialidade>.Erro("Especialidade não encontrada."));
 
             especialidade.DescricaoEspecialidade = dto.DescricaoEspecialidade;
 
             _repository.Update(especialidade);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Especialidade atualizada com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Especialidade atualizada com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -67,12 +68,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var especialidade = await _repository.GetByIdAsync(id);
             if (especialidade == null)
-                return NotFound(new { mensagem = "Especialidade não encontrada." });
+                return NotFound(ResultWrapper<Especialidade>.Erro("Especialidade não encontrada."));
 
             _repository.Delete(especialidade);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Especialidade removida com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Especialidade removida com sucesso."));
         }
     }
 }

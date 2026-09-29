@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var exames = await _repository.GetAllAsync();
-            return Ok(exames);
+            return Ok(ResultWrapper<IEnumerable<Exame>>.Ok(exames, "Exames recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -28,9 +29,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var exame = await _repository.GetByIdAsync(id);
             if (exame == null)
-                return NotFound(new { mensagem = "Exame não encontrado." });
+                return NotFound(ResultWrapper<Exame>.Erro("Exame não encontrado."));
 
-            return Ok(exame);
+            return Ok(ResultWrapper<Exame>.Ok(exame, "Exame recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -46,7 +47,7 @@ namespace GestaoHospitalarApi.Controllers
             await _repository.AddAsync(exame);
             await _repository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Exame cadastrado com sucesso", idExame = exame.IdExame });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Exame cadastrado com sucesso", idExame = exame.IdExame }, "Exame cadastrado com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -54,7 +55,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var exame = await _repository.GetByIdAsync(id);
             if (exame == null)
-                return NotFound(new { mensagem = "Exame não encontrado." });
+                return NotFound(ResultWrapper<Exame>.Erro("Exame não encontrado."));
 
             exame.Nome = dto.Nome;
             exame.Valor = dto.Valor;
@@ -63,7 +64,7 @@ namespace GestaoHospitalarApi.Controllers
             _repository.Update(exame);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Exame atualizado com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Exame atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -71,12 +72,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var exame = await _repository.GetByIdAsync(id);
             if (exame == null)
-                return NotFound(new { mensagem = "Exame não encontrado." });
+                return NotFound(ResultWrapper<Exame>.Erro("Exame não encontrado."));
 
             _repository.Delete(exame);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Exame removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Exame removido com sucesso."));
         }
     }
 }

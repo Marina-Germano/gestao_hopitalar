@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var triagens = await _triagemRepository.GetAllAsync();
-            return Ok(triagens);
+            return Ok(ResultWrapper<IEnumerable<Triagem>>.Ok(triagens, "Triagens recuperadas com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -35,9 +36,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var triagem = await _triagemRepository.GetByIdAsync(id);
             if (triagem == null)
-                return NotFound(new { mensagem = "Triagem não encontrada." });
+                return NotFound(ResultWrapper<Triagem>.Erro("Triagem não encontrada."));
 
-            return Ok(triagem);
+            return Ok(ResultWrapper<Triagem>.Ok(triagem, "Triagem recuperada com sucesso."));
         }
 
         [HttpPost]
@@ -45,7 +46,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var paciente = await _pacienteRepository.GetByIdAsync(dto.IdPaciente);
             if (paciente == null)
-                return NotFound(new { mensagem = "Paciente informado não foi encontrado." });
+                return NotFound(ResultWrapper<Paciente>.Erro("Paciente informado não foi encontrado."));
 
             var triagem = new Triagem
             {
@@ -84,7 +85,7 @@ namespace GestaoHospitalarApi.Controllers
 
             await _triagemRepository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Triagem registrada com sucesso", idTriagem = triagem.IdTriagem });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Triagem registrada com sucesso", idTriagem = triagem.IdTriagem }, "Triagem registrada com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -92,7 +93,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var triagem = await _triagemRepository.GetByIdAsync(id);
             if (triagem == null)
-                return NotFound(new { mensagem = "Triagem não encontrada." });
+                return NotFound(ResultWrapper<Triagem>.Erro("Triagem não encontrada."));
 
             triagem.ResponsavelTriagem = dto.ResponsavelTriagem;
             triagem.Pressao = dto.Pressao;
@@ -109,7 +110,7 @@ namespace GestaoHospitalarApi.Controllers
             _triagemRepository.Update(triagem);
             await _triagemRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Triagem atualizada com sucesso." });
+            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Triagem atualizada com sucesso." }, "Triagem atualizada com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -117,12 +118,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var triagem = await _triagemRepository.GetByIdAsync(id);
             if (triagem == null)
-                return NotFound(new { mensagem = "Triagem não encontrada." });
+                return NotFound(ResultWrapper<Triagem>.Erro("Triagem não encontrada."));
 
             _triagemRepository.Delete(triagem);
             await _triagemRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Triagem removida com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Triagem removida com sucesso."));
         }
     }
 }

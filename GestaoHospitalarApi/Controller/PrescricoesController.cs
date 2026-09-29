@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var prescricoes = await _prescricaoRepository.GetAllAsync();
-            return Ok(prescricoes);
+            return Ok(ResultWrapper<IEnumerable<Prescricao>>.Ok(prescricoes, "Prescrições recuperadas com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -38,9 +39,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prescricao = await _prescricaoRepository.GetByIdAsync(id);
             if (prescricao == null)
-                return NotFound(new { mensagem = "Prescrição não encontrada." });
+                return NotFound(ResultWrapper<Prescricao>.Erro("Prescrição não encontrada."));
 
-            return Ok(prescricao);
+            return Ok(ResultWrapper<Prescricao>.Ok(prescricao, "Prescrição recuperada com sucesso."));
         }
 
         [HttpPost]
@@ -48,15 +49,15 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prontuario = await _prontuarioRepository.GetByIdAsync(dto.IdProntuario);
             if (prontuario == null)
-                return NotFound(new { mensagem = "Prontuário informado não existe." });
+                return NotFound(ResultWrapper<Prontuario>.Erro("Prontuário informado não existe."));
 
             var medico = await _medicoRepository.GetByIdAsync(dto.IdMedico);
             if (medico == null)
-                return NotFound(new { mensagem = "Médico informado não existe." });
+                return NotFound(ResultWrapper<Medico>.Erro("Médico informado não existe."));
 
             var medicamento = await _medicamentoRepository.GetByIdAsync(dto.IdMedicamento);
             if (medicamento == null)
-                return NotFound(new { mensagem = "Medicamento informado não existe." });
+                return NotFound(ResultWrapper<Medicamento>.Erro("Medicamento informado não existe."));
 
             var prescricao = new Prescricao
             {
@@ -71,7 +72,7 @@ namespace GestaoHospitalarApi.Controllers
             await _prescricaoRepository.AddAsync(prescricao);
             await _prescricaoRepository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Prescrição criada com sucesso", idPrescricao = prescricao.IdPrescricao });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Prescrição criada com sucesso", idPrescricao = prescricao.IdPrescricao }, "Prescrição criada com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -79,7 +80,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prescricao = await _prescricaoRepository.GetByIdAsync(id);
             if (prescricao == null)
-                return NotFound(new { mensagem = "Prescrição não encontrada." });
+                return NotFound(ResultWrapper<Prescricao>.Erro("Prescrição não encontrada."));
 
             prescricao.Dosagem = dto.Dosagem;
             prescricao.Observacao = dto.Observacao;
@@ -88,7 +89,7 @@ namespace GestaoHospitalarApi.Controllers
             _prescricaoRepository.Update(prescricao);
             await _prescricaoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Prescrição atualizada com sucesso." });
+            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Prescrição atualizada com sucesso." }, "Prescrição atualizada com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -96,12 +97,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prescricao = await _prescricaoRepository.GetByIdAsync(id);
             if (prescricao == null)
-                return NotFound(new { mensagem = "Prescrição não encontrada." });
+                return NotFound(ResultWrapper<Prescricao>.Erro("Prescrição não encontrada."));
 
             _prescricaoRepository.Delete(prescricao);
             await _prescricaoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Prescrição removida com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Prescrição removida com sucesso."));
         }
     }
 }

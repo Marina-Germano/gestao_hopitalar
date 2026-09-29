@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var prontuarios = await _prontuarioRepository.GetAllAsync();
-            return Ok(prontuarios);
+            return Ok(ResultWrapper<IEnumerable<Prontuario>>.Ok(prontuarios, "Prontuários recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -38,9 +39,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prontuario = await _prontuarioRepository.GetByIdAsync(id);
             if (prontuario == null)
-                return NotFound(new { mensagem = "Prontuário não encontrado." });
+                return NotFound(ResultWrapper<Prontuario>.Erro("Prontuário não encontrado."));
 
-            return Ok(prontuario);
+            return Ok(ResultWrapper<Prontuario>.Ok(prontuario, "Prontuário recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -48,15 +49,15 @@ namespace GestaoHospitalarApi.Controllers
         {
             var paciente = await _pacienteRepository.GetByIdAsync(dto.IdPaciente);
             if (paciente == null)
-                return NotFound(new { mensagem = "Paciente informado não existe." });
+                return NotFound(ResultWrapper<Paciente>.Erro("Paciente informado não existe."));
 
             var triagem = await _triagemRepository.GetByIdAsync(dto.IdTriagem);
             if (triagem == null)
-                return NotFound(new { mensagem = "Triagem informada não existe." });
+                return NotFound(ResultWrapper<Triagem>.Erro("Triagem informada não existe."));
 
             var medico = await _medicoRepository.GetByIdAsync(dto.IdMedico);
             if (medico == null)
-                return NotFound(new { mensagem = "Médico informado não existe." });
+                return NotFound(ResultWrapper<Medico>.Erro("Médico informado não existe."));
 
             var prontuario = new Prontuario
             {
@@ -73,7 +74,7 @@ namespace GestaoHospitalarApi.Controllers
             await _prontuarioRepository.AddAsync(prontuario);
             await _prontuarioRepository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Prontuário aberto com sucesso", idProntuario = prontuario.IdProntuario });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Prontuário aberto com sucesso", idProntuario = prontuario.IdProntuario }, "Prontuário aberto com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -81,7 +82,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prontuario = await _prontuarioRepository.GetByIdAsync(id);
             if (prontuario == null)
-                return NotFound(new { mensagem = "Prontuário não encontrado." });
+                return NotFound(ResultWrapper<Prontuario>.Erro("Prontuário não encontrado."));
 
             prontuario.IdSala = dto.IdSala;
             //prontuario.RiscoEvasao = dto.RiscoEvasao.ToUpper();
@@ -91,7 +92,7 @@ namespace GestaoHospitalarApi.Controllers
             _prontuarioRepository.Update(prontuario);
             await _prontuarioRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Prontuário atualizado com sucesso." });
+            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Prontuário atualizado com sucesso." }, "Prontuário atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -99,12 +100,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prontuario = await _prontuarioRepository.GetByIdAsync(id);
             if (prontuario == null)
-                return NotFound(new { mensagem = "Prontuário não encontrado." });
+                return NotFound(ResultWrapper<Prontuario>.Erro("Prontuário não encontrado."));
 
             _prontuarioRepository.Delete(prontuario);
             await _prontuarioRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Prontuário removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Prontuário removido com sucesso."));
         }
     }
 }

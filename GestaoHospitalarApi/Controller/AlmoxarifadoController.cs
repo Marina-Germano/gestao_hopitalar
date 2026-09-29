@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var itens = await _repository.GetAllAsync();
-            return Ok(itens);
+            return Ok(ResultWrapper<IEnumerable<Almoxarifado>>.Ok(itens, "Itens do almoxarifado recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -28,9 +29,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var item = await _repository.GetByIdAsync(id);
             if (item == null)
-                return NotFound(new { mensagem = "Item do almoxarifado não encontrado." });
+                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item do almoxarifado não encontrado."));
 
-            return Ok(item);
+            return Ok(ResultWrapper<Almoxarifado>.Ok(item, "Item do almoxarifado recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -54,7 +55,7 @@ namespace GestaoHospitalarApi.Controllers
             await _repository.AddAsync(item);
             await _repository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Item cadastrado no almoxarifado com sucesso", idAlmoxarifado = item.IdAlmoxarifado });
+            return StatusCode(201, ResultWrapper<Almoxarifado>.Ok(item, "Item cadastrado no almoxarifado com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -62,7 +63,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var item = await _repository.GetByIdAsync(id);
             if (item == null)
-                return NotFound(new { mensagem = "Item não encontrado." });
+                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item não encontrado."));
 
             item.Nome = dto.Nome;
             item.Categoria = dto.Categoria.ToUpper();
@@ -79,7 +80,7 @@ namespace GestaoHospitalarApi.Controllers
             _repository.Update(item);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Item do almoxarifado atualizado com sucesso." });
+            return Ok(ResultWrapper<Almoxarifado>.Ok(item, "Item do almoxarifado atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -87,12 +88,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var item = await _repository.GetByIdAsync(id);
             if (item == null)
-                return NotFound(new { mensagem = "Item não encontrado." });
+                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item não encontrado."));
 
             _repository.Delete(item);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Item do almoxarifado removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Item do almoxarifado removido com sucesso."));
         }
     }
 }

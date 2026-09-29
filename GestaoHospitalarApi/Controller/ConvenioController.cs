@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var convenios = await _repository.GetAllAsync();
-            return Ok(convenios);
+            return Ok(ResultWrapper<IEnumerable<Convenio>>.Ok(convenios, "Convênios recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -28,9 +29,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var convenio = await _repository.GetByIdAsync(id);
             if (convenio == null)
-                return NotFound(new { mensagem = "Convênio não encontrado." });
+                return NotFound(ResultWrapper<Convenio>.Erro("Convênio não encontrado."));
 
-            return Ok(convenio);
+            return Ok(ResultWrapper<Convenio>.Ok(convenio, "Convênio recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -51,7 +52,7 @@ namespace GestaoHospitalarApi.Controllers
             await _repository.AddAsync(convenio);
             await _repository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Convênio cadastrado com sucesso", idConvenio = convenio.IdConvenio });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Convênio cadastrado com sucesso", idConvenio = convenio.IdConvenio }, "Convênio cadastrado com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -59,7 +60,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var convenio = await _repository.GetByIdAsync(id);
             if (convenio == null)
-                return NotFound(new { mensagem = "Convênio não encontrado." });
+                return NotFound(ResultWrapper<Convenio>.Erro("Convênio não encontrado."));
 
             convenio.NomeConvenio = dto.NomeConvenio;
             convenio.TipoLeito = dto.TipoLeito;
@@ -73,7 +74,7 @@ namespace GestaoHospitalarApi.Controllers
             _repository.Update(convenio);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Convênio atualizado com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Convênio atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -81,12 +82,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var convenio = await _repository.GetByIdAsync(id);
             if (convenio == null)
-                return NotFound(new { mensagem = "Convênio não encontrado." });
+                return NotFound(ResultWrapper<Convenio>.Erro("Convênio não encontrado."));
 
             _repository.Delete(convenio);
             await _repository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Convênio removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Convênio removido com sucesso."));
         }
     }
 }

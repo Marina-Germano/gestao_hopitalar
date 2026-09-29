@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var internacoes = await _internacaoRepository.GetAllAsync();
-            return Ok(internacoes);
+            return Ok(ResultWrapper<IEnumerable<Internacao>>.Ok(internacoes, "Internações recuperadas com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -35,9 +36,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var internacao = await _internacaoRepository.GetByIdAsync(id);
             if (internacao == null)
-                return NotFound(new { mensagem = "Internação não encontrada." });
+                return NotFound(ResultWrapper<Internacao>.Erro("Internação não encontrada."));
 
-            return Ok(internacao);
+            return Ok(ResultWrapper<Internacao>.Ok(internacao, "Internação recuperada com sucesso."));
         }
 
         [HttpPost]
@@ -45,14 +46,14 @@ namespace GestaoHospitalarApi.Controllers
         {
             var prontuario = await _prontuarioRepository.GetByIdAsync(dto.IdProntuario);
             if (prontuario == null)
-                return NotFound(new { mensagem = "Prontuário informado não existe." });
+                return NotFound(ResultWrapper<Prontuario>.Erro("Prontuário informado não existe."));
 
             var leito = await _leitoRepository.GetByIdAsync(dto.IdLeito);
             if (leito == null)
-                return NotFound(new { mensagem = "Leito informado não existe." });
+                return NotFound(ResultWrapper<Leito>.Erro("Leito informado não existe."));
 
             if (leito.Situacao != "VAGO")
-                return BadRequest(new { mensagem = $"O leito {leito.Numero} não está vago. Situação atual: {leito.Situacao}" });
+                return BadRequest(ResultWrapper<Leito>.Erro($"O leito {leito.Numero} não está vago. Situação atual: {leito.Situacao}"));
 
             var internacao = new Internacao
             {
@@ -70,7 +71,7 @@ namespace GestaoHospitalarApi.Controllers
             await _internacaoRepository.AddAsync(internacao);
             await _internacaoRepository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Internação realizada com sucesso", idInternacao = internacao.IdInternacao });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Internação realizada com sucesso", idInternacao = internacao.IdInternacao }, "Internação realizada com sucesso"));
         }
 
         [HttpPut("{id}/dar-alta")]
@@ -78,10 +79,10 @@ namespace GestaoHospitalarApi.Controllers
         {
             var internacao = await _internacaoRepository.GetByIdAsync(id);
             if (internacao == null)
-                return NotFound(new { mensagem = "Internação não encontrada." });
+                return NotFound(ResultWrapper<Internacao>.Erro("Internação não encontrada."));
 
             if (internacao.StatusInternacao == "ALTA")
-                return BadRequest(new { mensagem = "Esta internação já teve alta registrada." });
+                return BadRequest(ResultWrapper<Internacao>.Erro("Esta internação já teve alta registrada."));
 
             internacao.DataAlta = DateTime.Now;
             internacao.StatusInternacao = "ALTA";
@@ -98,7 +99,7 @@ namespace GestaoHospitalarApi.Controllers
             _internacaoRepository.Update(internacao);
             await _internacaoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Alta médica registrada com sucesso. Leito liberado para higienização." });
+            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Alta médica registrada com sucesso. Leito liberado para higienização." }, "Alta médica registrada com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -106,7 +107,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var internacao = await _internacaoRepository.GetByIdAsync(id);
             if (internacao == null)
-                return NotFound(new { mensagem = "Internação não encontrada." });
+                return NotFound(ResultWrapper<Internacao>.Erro("Internação não encontrada."));
 
             // Libera o leito caso a internação seja cancelada/excluída
             var leito = await _leitoRepository.GetByIdAsync(internacao.IdLeito);
@@ -119,7 +120,7 @@ namespace GestaoHospitalarApi.Controllers
             _internacaoRepository.Delete(internacao);
             await _internacaoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Internação removida com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Internação removida com sucesso."));
         }
     }
 }

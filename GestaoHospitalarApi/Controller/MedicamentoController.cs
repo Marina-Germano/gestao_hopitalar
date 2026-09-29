@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,7 +25,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var medicamentos = await _medicamentoRepository.GetAllAsync();
-            return Ok(medicamentos);
+            return Ok(ResultWrapper<IEnumerable<Medicamento>>.Ok(medicamentos, "Medicamentos recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -32,9 +33,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var medicamento = await _medicamentoRepository.GetByIdAsync(id);
             if (medicamento == null)
-                return NotFound(new { mensagem = "Medicamento não encontrado." });
+                return NotFound(ResultWrapper<Medicamento>.Erro("Medicamento não encontrado."));
 
-            return Ok(medicamento);
+            return Ok(ResultWrapper<Medicamento>.Ok(medicamento, "Medicamento recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -42,7 +43,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var itemAlmoxarifado = await _almoxarifadoRepository.GetByIdAsync(dto.IdAlmoxarifado);
             if (itemAlmoxarifado == null)
-                return NotFound(new { mensagem = "Item do almoxarifado informado não existe." });
+                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item do almoxarifado informado não existe."));
 
             var medicamento = new Medicamento
             {
@@ -54,7 +55,7 @@ namespace GestaoHospitalarApi.Controllers
             await _medicamentoRepository.AddAsync(medicamento);
             await _medicamentoRepository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Medicamento registrado com sucesso", idMedicamento = medicamento.IdMedicamento });
+            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Medicamento registrado com sucesso", idMedicamento = medicamento.IdMedicamento }, "Medicamento registrado com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -62,7 +63,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var medicamento = await _medicamentoRepository.GetByIdAsync(id);
             if (medicamento == null)
-                return NotFound(new { mensagem = "Medicamento não encontrado." });
+                return NotFound(ResultWrapper<Medicamento>.Erro("Medicamento não encontrado."));
 
             medicamento.IdAlmoxarifado = dto.IdAlmoxarifado;
             medicamento.PrincipioAtivo = dto.PrincipioAtivo;
@@ -71,7 +72,7 @@ namespace GestaoHospitalarApi.Controllers
             _medicamentoRepository.Update(medicamento);
             await _medicamentoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Medicamento atualizado com sucesso." });
+            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Medicamento atualizado com sucesso." }, "Medicamento atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -79,12 +80,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var medicamento = await _medicamentoRepository.GetByIdAsync(id);
             if (medicamento == null)
-                return NotFound(new { mensagem = "Medicamento não encontrado." });
+                return NotFound(ResultWrapper<Medicamento>.Erro("Medicamento não encontrado."));
 
             _medicamentoRepository.Delete(medicamento);
             await _medicamentoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Medicamento removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Medicamento removido com sucesso."));
         }
     }
 }

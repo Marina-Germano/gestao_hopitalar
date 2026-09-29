@@ -1,5 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Wrappers;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,7 +28,7 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var agendamentos = await _agendamentoRepository.GetAllAsync();
-            return Ok(agendamentos);
+            return Ok(ResultWrapper<IEnumerable<Agendamento>>.Ok(agendamentos, "Agendamentos recuperados com sucesso."));
         }
 
         [HttpGet("{id}")]
@@ -35,9 +36,9 @@ namespace GestaoHospitalarApi.Controllers
         {
             var agendamento = await _agendamentoRepository.GetByIdAsync(id);
             if (agendamento == null)
-                return NotFound(new { mensagem = "Agendamento não encontrado." });
+                return NotFound(ResultWrapper<Agendamento>.Erro("Agendamento não encontrado."));
 
-            return Ok(agendamento);
+            return Ok(ResultWrapper<Agendamento>.Ok(agendamento, "Agendamento recuperado com sucesso."));
         }
 
         [HttpPost]
@@ -45,11 +46,11 @@ namespace GestaoHospitalarApi.Controllers
         {
             var paciente = await _pacienteRepository.GetByIdAsync(dto.IdPaciente);
             if (paciente == null)
-                return NotFound(new { mensagem = "Paciente informado não existe." });
+                return NotFound(ResultWrapper<Paciente>.Erro("Paciente informado não existe."));
 
             var medico = await _medicoRepository.GetByIdAsync(dto.IdMedico);
             if (medico == null)
-                return NotFound(new { mensagem = "Médico informado não existe." });
+                return NotFound(ResultWrapper<Medico>.Erro("Médico informado não existe."));
 
             var agendamento = new Agendamento
             {
@@ -63,7 +64,7 @@ namespace GestaoHospitalarApi.Controllers
             await _agendamentoRepository.AddAsync(agendamento);
             await _agendamentoRepository.SaveChangesAsync();
 
-            return StatusCode(201, new { mensagem = "Agendamento criado com sucesso", idAgendamento = agendamento.IdAgendamento });
+            return StatusCode(201, ResultWrapper<Agendamento>.Ok(agendamento, "Agendamento criado com sucesso"));
         }
 
         [HttpPut("{id}")]
@@ -71,7 +72,7 @@ namespace GestaoHospitalarApi.Controllers
         {
             var agendamento = await _agendamentoRepository.GetByIdAsync(id);
             if (agendamento == null)
-                return NotFound(new { mensagem = "Agendamento não encontrado." });
+                return NotFound(ResultWrapper<Agendamento>.Erro("Agendamento não encontrado."));
 
             agendamento.IdPaciente = dto.IdPaciente;
             agendamento.IdMedico = dto.IdMedico;
@@ -82,7 +83,7 @@ namespace GestaoHospitalarApi.Controllers
             _agendamentoRepository.Update(agendamento);
             await _agendamentoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Agendamento atualizado com sucesso." });
+            return Ok(ResultWrapper<Agendamento>.Ok(agendamento, "Agendamento atualizado com sucesso."));
         }
 
         [HttpDelete("{id}")]
@@ -90,12 +91,12 @@ namespace GestaoHospitalarApi.Controllers
         {
             var agendamento = await _agendamentoRepository.GetByIdAsync(id);
             if (agendamento == null)
-                return NotFound(new { mensagem = "Agendamento não encontrado." });
+                return NotFound(ResultWrapper<Agendamento>.Erro("Agendamento não encontrado."));
 
             _agendamentoRepository.Delete(agendamento);
             await _agendamentoRepository.SaveChangesAsync();
 
-            return Ok(new { mensagem = "Agendamento removido com sucesso." });
+            return Ok(ResultWrapper<string>.Ok(string.Empty, "Agendamento removido com sucesso."));
         }
     }
 }
