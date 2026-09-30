@@ -7,9 +7,9 @@ public partial class Sala
 {
     public int IdSala { get; set; }
 
-    public string Nome { get; set; } = null!;
+    public int IdAla { get; set; }
 
-    public string? Tipo { get; set; }
+    public string Nome { get; set; } = null!;
 
     public string? Status { get; set; }
 

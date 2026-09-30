@@ -1,166 +1,106 @@
 using GestaoHospitalarApi.Application.DTOs;
-using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Services;
 using GestaoHospitalarApi.Application.Wrappers;
-using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace GestaoHospitalarApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PacientesController : ControllerBase
+    public class PacienteController : ControllerBase
     {
-        private readonly IGenericRepository<Paciente> _pacienteRepository;
-        private readonly IMemoryCache _cache;
+        private readonly IPacienteService _pacienteService;
 
-        public PacientesController(IGenericRepository<Paciente> pacienteRepository,IMemoryCache cache)
+        public PacienteController(IPacienteService pacienteService)
         {
-            _pacienteRepository = pacienteRepository;
-            _cache = cache;
+            _pacienteService = pacienteService;
         }
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            const string cacheKey = "pacientes";
 
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<Paciente>? pacientesCache))
+        // POST: api/paciente/cadastrar
+        [HttpPost("cadastrar")]
+        public async Task<IActionResult> Cadastrar([FromBody] PacienteCadastroDto dto)
+        {
+            try
             {
-                return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientesCache, "Pacientes recuperados com sucesso."));
+                await _pacienteService.CadastrarAsync(dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente cadastrado com sucesso!"));
             }
-
-            var pacientes = await _pacienteRepository.GetAllAsync();
-
-            _cache.Set(
-                cacheKey,
-                pacientes,
-                TimeSpan.FromMinutes(5)
-            );
-
-            return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientes, "Pacientes recuperados com sucesso."));
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
         }
 
+        // GET: api/paciente/ativos
+        [HttpGet("ativos")]
+        public async Task<IActionResult> ObterAtivos()
+        {
+            var pacientes = await _pacienteService.ObterTodosAtivosAsync();
+            return Ok(ResultWrapper<IEnumerable<PacienteListagemDto>>.Ok(pacientes));
+        }
+
+        // GET: api/paciente/inativos
+        [HttpGet("inativos")]
+        public async Task<IActionResult> ObterInativos()
+        {
+            var pacientes = await _pacienteService.ObterTodosInativosAsync();
+            return Ok(ResultWrapper<IEnumerable<PacienteListagemDto>>.Ok(pacientes));
+        }
+
+        // GET: api/paciente/5 (Para carregar o formulário de edição)
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> ObterPorId(int id)
         {
-            var paciente = await _pacienteRepository.GetByIdAsync(id);
+            var paciente = await _pacienteService.ObterParaEdicaoAsync(id);
             if (paciente == null)
-                return NotFound(ResultWrapper<Paciente>.Erro("Paciente não encontrado."));
+                return NotFound(ResultWrapper<object>.Erro("Paciente não encontrado."));
 
-            return Ok(ResultWrapper<Paciente>.Ok(paciente, "Paciente encontrado com sucesso."));
+            return Ok(paciente);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] PacienteCadastroDto dto)
-        {
-            var paciente = new Paciente
-            {
-                Ativo = 1,
-                Alergias = dto.Alergias,
-                TipoSanguineo = dto.TipoSanguineo,
-                HistoricoClinico = dto.HistoricoClinico,
-                NomeResponsavel = dto.NomeResponsavel,
-                IdPessoaNavigation = new Pessoa
-                {
-                    Nome = dto.Nome,
-                    Cpf = dto.Cpf,
-                    Nascimento = dto.Nascimento.HasValue
-                        ? DateOnly.FromDateTime(dto.Nascimento.Value)
-                        : null,
-                    Sexo = dto.Sexo,
-                    Telefone = dto.Telefone,
-                    Email = dto.Email,
-                    Rua = dto.Rua,
-                    NumeroCasa = dto.NumeroCasa,
-                    Bairro = dto.Bairro,
-                    Cidade = dto.Cidade,
-                    Estado = dto.Estado,
-                    Cep = dto.Cep
-                }
-            };
-
-            await _pacienteRepository.AddAsync(paciente);
-            await _pacienteRepository.SaveChangesAsync();
-
-            _cache.Remove("pacientes");
-
-
-            return StatusCode(201, ResultWrapper<Paciente>.Ok(paciente, "Paciente cadastrado com sucesso."));
-        }
-
+        // PUT: api/paciente/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] PacienteCadastroDto dto)
+        public async Task<IActionResult> Atualizar(int id, [FromBody] PacienteCadastroDto dto)
         {
-            var paciente = await _pacienteRepository.GetByIdAsync(id);
-            if (paciente == null)
-                return NotFound(ResultWrapper<Paciente>.Erro("Paciente não encontrado."));
-
-            paciente.Alergias = dto.Alergias;
-            paciente.TipoSanguineo = dto.TipoSanguineo;
-            paciente.HistoricoClinico = dto.HistoricoClinico;
-            paciente.NomeResponsavel = dto.NomeResponsavel;
-
-            if (paciente.IdPessoaNavigation != null)
+            try
             {
-                paciente.IdPessoaNavigation.Nome = dto.Nome;
-                paciente.IdPessoaNavigation.Cpf = dto.Cpf;
-                paciente.IdPessoaNavigation.Nascimento = dto.Nascimento.HasValue
-                        ? DateOnly.FromDateTime(dto.Nascimento.Value)
-                        : null;
-                paciente.IdPessoaNavigation.Sexo = dto.Sexo;
-                paciente.IdPessoaNavigation.Telefone = dto.Telefone;
-                paciente.IdPessoaNavigation.Email = dto.Email;
-                paciente.IdPessoaNavigation.Rua = dto.Rua;
-                paciente.IdPessoaNavigation.NumeroCasa = dto.NumeroCasa;
-                paciente.IdPessoaNavigation.Bairro = dto.Bairro;
-                paciente.IdPessoaNavigation.Cidade = dto.Cidade;
-                paciente.IdPessoaNavigation.Estado = dto.Estado;
-                paciente.IdPessoaNavigation.Cep = dto.Cep;
+                await _pacienteService.AtualizarAsync(id, dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente atualizado com sucesso!"));
             }
-
-            _pacienteRepository.Update(paciente);
-            await _pacienteRepository.SaveChangesAsync();
-
-            _cache.Remove("pacientes");
-
-            return Ok(ResultWrapper<Paciente>.Ok(paciente, "Paciente atualizado com sucesso."));
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
         }
 
+        // PATCH: api/paciente/5/arquivar
+        [HttpPatch("{id}/arquivar")]
+        public async Task<IActionResult> Arquivar(int id)
+        {
+            try
+            {
+                await _pacienteService.ArquivarAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente arquivado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
+
+        // DELETE: api/paciente/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Excluir(int id)
         {
-            var paciente = await _pacienteRepository.GetByIdAsync(id);
-            if (paciente == null)
-                return NotFound(ResultWrapper<Paciente>.Erro("Paciente não encontrado."));
-
-            _pacienteRepository.Delete(paciente);
-            await _pacienteRepository.SaveChangesAsync();
-
-            _cache.Remove("pacientes");
-
-            return Ok(ResultWrapper<string>.Ok(string.Empty, "Paciente removido com sucesso."));
-        }
-
-        [HttpGet("buscar")]
-        public async Task<IActionResult> GetByName([FromQuery] string nome)
-        {
-            if (string.IsNullOrWhiteSpace(nome))
+            try
             {
-                return BadRequest(ResultWrapper<string>.Erro("O parâmetro 'nome' não pode ser vazio."));
+                await _pacienteService.ExcluirAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente excluído com sucesso!"));
             }
-
-            // O EF Core vai transformar isso num SELECT com JOIN e LIKE %nome% automaticamente!
-            var pacientes = await _pacienteRepository.FindAsync(p => 
-                p.IdPessoaNavigation != null && 
-                p.IdPessoaNavigation.Nome.Contains(nome));
-
-            if (!pacientes.Any())
+            catch (Exception ex)
             {
-                // Retorna sucesso, mas com a lista vazia e uma mensagem amigável
-                return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientes, "Nenhum paciente encontrado com este nome."));
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
             }
-
-            return Ok(ResultWrapper<IEnumerable<Paciente>>.Ok(pacientes, "Paciente(s) encontrado(s) com sucesso."));
         }
     }
 }

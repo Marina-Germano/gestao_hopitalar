@@ -7,13 +7,13 @@ public partial class Medico
 {
     public int IdMedico { get; set; }
 
-    public int? IdUsuario { get; set; }
+    public int IdUsuario { get; set; }
 
     public int IdEspecialidade { get; set; }
 
     public string Crm { get; set; } = null!;
 
-    public decimal? Honorario { get; set; }
+    public decimal Honorario { get; set; }
 
     public virtual ICollection<Agendamento> Agendamentos { get; set; } = new List<Agendamento>();
 
@@ -21,7 +21,7 @@ public partial class Medico
 
     public virtual Especialidade IdEspecialidadeNavigation { get; set; } = null!;
 
-    public virtual Usuario? IdUsuarioNavigation { get; set; }
+    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 
     public virtual ICollection<Prescricao> Prescricaos { get; set; } = new List<Prescricao>();
 

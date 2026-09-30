@@ -7,7 +7,7 @@ public partial class Auditorium
 {
     public int IdAuditoria { get; set; }
 
-    public int? IdFaturamento { get; set; }
+    public int IdFaturamento { get; set; }
 
     public string? Auditor { get; set; }
 
@@ -19,5 +19,5 @@ public partial class Auditorium
 
     public int? Conformidade { get; set; }
 
-    public virtual Faturamento? IdFaturamentoNavigation { get; set; }
+    public virtual Faturamento IdFaturamentoNavigation { get; set; } = null!;
 }

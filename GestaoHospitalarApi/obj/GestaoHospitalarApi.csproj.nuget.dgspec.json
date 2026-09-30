@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Marin\\Área de Trabalho\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj": {}
+    "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Marin\\Área de Trabalho\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj": {
+    "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Marin\\Área de Trabalho\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
+        "projectUniqueName": "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
         "projectName": "GestaoHospitalarApi",
-        "projectPath": "C:\\Users\\Marin\\Área de Trabalho\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
+        "projectPath": "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
         "packagesPath": "C:\\Users\\Marin\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Marin\\Área de Trabalho\\gestao_hopitalar\\GestaoHospitalarApi\\obj\\",
+        "outputPath": "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Marin\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -57,6 +57,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[10.0.12, )"
+            },
+            "Microsoft.Extensions.Identity.Core": {
+              "target": "Package",
+              "version": "[9.0.8, )"
             },
             "Pomelo.EntityFrameworkCore.MySql": {
               "target": "Package",

@@ -9,15 +9,15 @@ public partial class Faturamento
 
     public int IdInternacao { get; set; }
 
-    public decimal? ValorMedicamentos { get; set; }
+    public decimal? TotalMedicamentos { get; set; }
 
-    public decimal? ValorExames { get; set; }
+    public decimal? TotalExames { get; set; }
 
-    public decimal? ValorInternacao { get; set; }
+    public decimal? TotalInternacao { get; set; }
 
-    public decimal? ValorHonorarios { get; set; }
+    public decimal? TotalHonorarios { get; set; }
 
-    public decimal? ValorConsumo { get; set; }
+    public decimal? TotalConsumo { get; set; }
 
     public decimal? ValorTotal { get; set; }
 

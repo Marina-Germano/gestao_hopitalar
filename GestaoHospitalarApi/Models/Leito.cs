@@ -7,11 +7,11 @@ public partial class Leito
 {
     public int IdLeito { get; set; }
 
+    public int IdAla { get; set; }
+
     public string Numero { get; set; } = null!;
 
-    public string? Ala { get; set; }
-
-    public string? Andar { get; set; }
+    public string? TipoLeito { get; set; }
 
     public DateTime DataHigienizacao { get; set; }
 

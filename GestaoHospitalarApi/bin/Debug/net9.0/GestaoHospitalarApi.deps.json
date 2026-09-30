@@ -11,6 +11,7 @@
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.8",
           "Microsoft.AspNetCore.OpenApi": "9.0.8",
           "Microsoft.EntityFrameworkCore.Tools": "10.0.12",
+          "Microsoft.Extensions.Identity.Core": "9.0.8",
           "Pomelo.EntityFrameworkCore.MySql": "9.0.0",
           "Swashbuckle.AspNetCore": "6.6.2"
         },
@@ -33,6 +34,25 @@
         "runtime": {
           "lib/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll": {
             "assemblyVersion": "9.0.8.0",
+            "fileVersion": "9.0.825.36808"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Cryptography.Internal/9.0.8": {
+        "runtime": {
+          "lib/net9.0/Microsoft.AspNetCore.Cryptography.Internal.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.825.36808"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Cryptography.KeyDerivation/9.0.8": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Cryptography.Internal": "9.0.8"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.AspNetCore.Cryptography.KeyDerivation.dll": {
+            "assemblyVersion": "9.0.0.0",
             "fileVersion": "9.0.825.36808"
           }
         }
@@ -474,6 +494,19 @@
           }
         }
       },
+      "Microsoft.Extensions.Identity.Core/9.0.8": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Cryptography.KeyDerivation": "9.0.8",
+          "Microsoft.Extensions.Logging": "9.0.15",
+          "Microsoft.Extensions.Options": "9.0.15"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.Extensions.Identity.Core.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.825.36808"
+          }
+        }
+      },
       "Microsoft.Extensions.Logging/9.0.15": {
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection": "9.0.15",
@@ -782,6 +815,20 @@
       "path": "microsoft.aspnetcore.authentication.jwtbearer/9.0.8",
       "hashPath": "microsoft.aspnetcore.authentication.jwtbearer.9.0.8.nupkg.sha512"
     },
+    "Microsoft.AspNetCore.Cryptography.Internal/9.0.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-NwGO0wh/IjEthBLGA6fWfIiftsNF/paA5RxWp6ji4wWazetJgQ4truR9nU2thAzzFLiXqlg8vGjdVDA8bHu0zA==",
+      "path": "microsoft.aspnetcore.cryptography.internal/9.0.8",
+      "hashPath": "microsoft.aspnetcore.cryptography.internal.9.0.8.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Cryptography.KeyDerivation/9.0.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-gK70xxXYwwPiXYKYVmLYMuIO5EOGrRtQghmM6PkgtZ/0lgLEjIs//xgSLvZkV/mroNHA1DEqTcqscEj9OzZ1IA==",
+      "path": "microsoft.aspnetcore.cryptography.keyderivation/9.0.8",
+      "hashPath": "microsoft.aspnetcore.cryptography.keyderivation.9.0.8.nupkg.sha512"
+    },
     "Microsoft.AspNetCore.OpenApi/9.0.8": {
       "type": "package",
       "serviceable": true,
@@ -942,6 +989,13 @@
       "sha512": "sha512-zt6n0QA6ufiSYJFURYCnQcOP48fRvmlLtbKwgAoPoBjuBGZ+2g+yhu3MRxOjfiA3iHpjlMoDJcNMOhRMVG64oQ==",
       "path": "microsoft.extensions.dependencymodel/9.0.15",
       "hashPath": "microsoft.extensions.dependencymodel.9.0.15.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Identity.Core/9.0.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-giUYz84GHAizDucZp5vWAusDO2s9Jrrg2jQ6HUQNGs5HQMKJVobLPMQSiyg8R4yecH0pIc0QjANh0B/Kw13BHA==",
+      "path": "microsoft.extensions.identity.core/9.0.8",
+      "hashPath": "microsoft.extensions.identity.core.9.0.8.nupkg.sha512"
     },
     "Microsoft.Extensions.Logging/9.0.15": {
       "type": "package",

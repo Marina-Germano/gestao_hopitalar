@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Application.Services;
 using GestaoHospitalarApi.Infra.EF;
+using GestaoHospitalarApi.Infra.Repositories;
 using GestaoHospitalarApi.Application.Authentication;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -38,24 +39,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
-// =========== INJEÇÃO DE DEPENDÊNCIA ===========
-// Aplicação
-builder.Services.AddScoped<IUsuarioService, UsuarioService>();
-builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
-
 // 1. Configurar Conexão do MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.Parse("11.8.2-mariadb")));
-
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-// 2. Registrar o Repositório Genérico
+
+
+// =========== INJEÇÃO DE DEPENDÊNCIA ===========
+// Aplicação
+builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IPacienteRepository, PacienteRepository>();
+builder.Services.AddScoped<IConvenioRepository, ConvenioRepository>();
+
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddScoped<IConvenioService, ConvenioService>();
+builder.Services.AddScoped<IPacienteService, PacienteService>();
+builder.Services.AddScoped<JwtService>();
+
 
 builder.Services.AddCors(options =>
 {
@@ -70,7 +74,6 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
 
-builder.Services.AddEndpointsApiExplorer();
 
 // =========== CONFIGURAÇÃO DO SWAGGER ===========
 builder.Services.AddEndpointsApiExplorer();

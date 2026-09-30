@@ -15,8 +15,6 @@ public partial class Internacao
 
     public DateTime? DataAlta { get; set; }
 
-    public string? Isolamento { get; set; }
-
     public string? StatusInternacao { get; set; }
 
     public virtual ICollection<ConsumoItem> ConsumoItems { get; set; } = new List<ConsumoItem>();

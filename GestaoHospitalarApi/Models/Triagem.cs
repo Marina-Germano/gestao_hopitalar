@@ -25,8 +25,6 @@ public partial class Triagem
 
     public string? Queixa { get; set; }
 
-    public string? Alergias { get; set; }
-
     public string? Observacoes { get; set; }
 
     public string? Internacao { get; set; }

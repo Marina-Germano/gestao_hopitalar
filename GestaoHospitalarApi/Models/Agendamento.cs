@@ -11,7 +11,7 @@ public partial class Agendamento
 
     public int IdMedico { get; set; }
 
-    public int? IdSala { get; set; }
+    public int IdSala { get; set; }
 
     public DateTime DataHora { get; set; }
 
@@ -21,5 +21,5 @@ public partial class Agendamento
 
     public virtual Paciente IdPacienteNavigation { get; set; } = null!;
 
-    public virtual Sala? IdSalaNavigation { get; set; }
+    public virtual Sala IdSalaNavigation { get; set; } = null!;
 }

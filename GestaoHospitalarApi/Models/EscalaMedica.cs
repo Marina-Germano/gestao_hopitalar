@@ -11,9 +11,9 @@ public partial class EscalaMedica
 
     public DateOnly DataEscala { get; set; }
 
-    public string HoraInicio { get; set; } = null!;
+    public TimeOnly HoraInicio { get; set; }
 
-    public string HoraFim { get; set; } = null!;
+    public TimeOnly HoraFim { get; set; }
 
     public int? IsPlantao { get; set; }
 

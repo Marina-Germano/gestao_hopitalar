@@ -42,7 +42,7 @@ namespace GestaoHospitalarApi.Application.Services
                     Telefone = dto.Telefone,
                     Email = dto.Email,
                     Rua = dto.Rua,
-                    NumeroCasa = dto.NumeroCasa,
+                    NumeroCasa = dto.NumeroCasa?.ToString()?? string.Empty,
                     Bairro = dto.Bairro,
                     Cidade = dto.Cidade,
                     Estado = dto.Estado,

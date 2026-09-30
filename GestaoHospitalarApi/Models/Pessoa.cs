@@ -9,7 +9,7 @@ public partial class Pessoa
 
     public string Nome { get; set; } = null!;
 
-    public string? Cpf { get; set; }
+    public string Cpf { get; set; } = null!;
 
     public DateOnly? Nascimento { get; set; }
 
@@ -21,7 +21,7 @@ public partial class Pessoa
 
     public string? Rua { get; set; }
 
-    public int? NumeroCasa { get; set; }
+    public string? NumeroCasa { get; set; }
 
     public string? Bairro { get; set; }
 

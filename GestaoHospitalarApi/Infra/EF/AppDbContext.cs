@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using GestaoHospitalarApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
-using GestaoHospitalarApi.Models;
+
 namespace GestaoHospitalarApi.Infra.EF;
 
 public partial class AppDbContext : DbContext
@@ -17,6 +18,8 @@ public partial class AppDbContext : DbContext
     }
 
     public virtual DbSet<Agendamento> Agendamentos { get; set; }
+
+    public virtual DbSet<Ala> Alas { get; set; }
 
     public virtual DbSet<Almoxarifado> Almoxarifados { get; set; }
 
@@ -63,6 +66,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Triagem> Triagems { get; set; }
 
     public virtual DbSet<Usuario> Usuarios { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseMySql("server=localhost;database=gestao_hospitalar;uid=root", Microsoft.EntityFrameworkCore.ServerVersion.Parse("10.4.32-mariadb"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -116,7 +123,25 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.IdSalaNavigation).WithMany(p => p.Agendamentos)
                 .HasForeignKey(d => d.IdSala)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("agendamento_ibfk_3");
+        });
+
+        modelBuilder.Entity<Ala>(entity =>
+        {
+            entity.HasKey(e => e.IdAla).HasName("PRIMARY");
+
+            entity.ToTable("ala");
+
+            entity.Property(e => e.IdAla)
+                .HasColumnType("int(11)")
+                .HasColumnName("id_ala");
+            entity.Property(e => e.Andar)
+                .HasMaxLength(20)
+                .HasColumnName("andar");
+            entity.Property(e => e.NomeAla)
+                .HasMaxLength(100)
+                .HasColumnName("nome_ala");
         });
 
         modelBuilder.Entity<Almoxarifado>(entity =>
@@ -190,6 +215,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.IdFaturamentoNavigation).WithMany(p => p.Auditoria)
                 .HasForeignKey(d => d.IdFaturamento)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("auditoria_ibfk_1");
         });
 
@@ -288,10 +314,10 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("id_escala");
             entity.Property(e => e.DataEscala).HasColumnName("data_escala");
             entity.Property(e => e.HoraFim)
-                .HasMaxLength(5)
+                .HasColumnType("time")
                 .HasColumnName("hora_fim");
             entity.Property(e => e.HoraInicio)
-                .HasMaxLength(5)
+                .HasColumnType("time")
                 .HasColumnName("hora_inicio");
             entity.Property(e => e.IdMedico)
                 .HasColumnType("int(11)")
@@ -366,26 +392,26 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(10)
                 .HasDefaultValueSql("'PENDENTE'")
                 .HasColumnName("status_pagamento");
-            entity.Property(e => e.ValorConsumo)
+            entity.Property(e => e.TotalConsumo)
                 .HasPrecision(10, 2)
                 .HasDefaultValueSql("'0.00'")
-                .HasColumnName("valor_consumo");
-            entity.Property(e => e.ValorExames)
+                .HasColumnName("total_consumo");
+            entity.Property(e => e.TotalExames)
                 .HasPrecision(10, 2)
                 .HasDefaultValueSql("'0.00'")
-                .HasColumnName("valor_exames");
-            entity.Property(e => e.ValorHonorarios)
+                .HasColumnName("total_exames");
+            entity.Property(e => e.TotalHonorarios)
                 .HasPrecision(10, 2)
                 .HasDefaultValueSql("'0.00'")
-                .HasColumnName("valor_honorarios");
-            entity.Property(e => e.ValorInternacao)
+                .HasColumnName("total_honorarios");
+            entity.Property(e => e.TotalInternacao)
                 .HasPrecision(10, 2)
                 .HasDefaultValueSql("'0.00'")
-                .HasColumnName("valor_internacao");
-            entity.Property(e => e.ValorMedicamentos)
+                .HasColumnName("total_internacao");
+            entity.Property(e => e.TotalMedicamentos)
                 .HasPrecision(10, 2)
                 .HasDefaultValueSql("'0.00'")
-                .HasColumnName("valor_medicamentos");
+                .HasColumnName("total_medicamentos");
             entity.Property(e => e.ValorTotal)
                 .HasPrecision(10, 2)
                 .HasColumnName("valor_total");
@@ -459,9 +485,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdProntuario)
                 .HasColumnType("int(11)")
                 .HasColumnName("id_prontuario");
-            entity.Property(e => e.Isolamento)
-                .HasMaxLength(3)
-                .HasColumnName("isolamento");
             entity.Property(e => e.StatusInternacao)
                 .HasMaxLength(15)
                 .HasDefaultValueSql("'ATIVA'")
@@ -487,17 +510,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdLeito)
                 .HasColumnType("int(11)")
                 .HasColumnName("id_leito");
-            entity.Property(e => e.Ala)
-                .HasMaxLength(50)
-                .HasColumnName("ala");
-            entity.Property(e => e.Andar)
-                .HasMaxLength(10)
-                .HasColumnName("andar");
             entity.Property(e => e.DataHigienizacao)
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("current_timestamp()")
                 .HasColumnType("timestamp")
                 .HasColumnName("data_higienizacao");
+            entity.Property(e => e.IdAla)
+                .HasColumnType("int(11)")
+                .HasColumnName("id_ala");
             entity.Property(e => e.Numero)
                 .HasMaxLength(10)
                 .HasColumnName("numero");
@@ -505,6 +525,10 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'VAGO'")
                 .HasColumnName("situacao");
+            entity.Property(e => e.TipoLeito)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'COMUM'")
+                .HasColumnName("tipo_leito");
         });
 
         modelBuilder.Entity<LogProntuario>(entity =>
@@ -600,6 +624,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.IdUsuarioNavigation).WithOne(p => p.Medico)
                 .HasForeignKey<Medico>(d => d.IdUsuario)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("medico_ibfk_2");
         });
 
@@ -719,7 +744,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(150)
                 .HasColumnName("nome");
             entity.Property(e => e.NumeroCasa)
-                .HasColumnType("int(11)")
+                .HasMaxLength(10)
                 .HasColumnName("numero_casa");
             entity.Property(e => e.Rua)
                 .HasMaxLength(150)
@@ -861,15 +886,15 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdSala)
                 .HasColumnType("int(11)")
                 .HasColumnName("id_sala");
+            entity.Property(e => e.IdAla)
+                .HasColumnType("int(11)")
+                .HasColumnName("id_ala");
             entity.Property(e => e.Nome)
                 .HasMaxLength(50)
                 .HasColumnName("nome");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasColumnName("status");
-            entity.Property(e => e.Tipo)
-                .HasMaxLength(50)
-                .HasColumnName("tipo");
         });
 
         modelBuilder.Entity<SolicitacaoExame>(entity =>
@@ -935,9 +960,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IdTriagem)
                 .HasColumnType("int(11)")
                 .HasColumnName("id_triagem");
-            entity.Property(e => e.Alergias)
-                .HasColumnType("text")
-                .HasColumnName("alergias");
             entity.Property(e => e.EscalaDor)
                 .HasColumnType("int(11)")
                 .HasColumnName("escala_dor");

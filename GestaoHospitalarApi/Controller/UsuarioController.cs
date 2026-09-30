@@ -89,7 +89,7 @@ namespace GestaoHospitalarApi.Controllers
                     Telefone = dto.Telefone,
                     Email = dto.Email,
                     Rua = dto.Rua,
-                    NumeroCasa = dto.NumeroCasa,
+                    NumeroCasa = dto.NumeroCasa?.ToString()?? string.Empty,
                     Bairro = dto.Bairro,
                     Cidade = dto.Cidade,
                     Estado = dto.Estado,
@@ -134,7 +134,7 @@ namespace GestaoHospitalarApi.Controllers
                 usuario.IdPessoaNavigation.Telefone = dto.Telefone;
                 usuario.IdPessoaNavigation.Email = dto.Email;
                 usuario.IdPessoaNavigation.Rua = dto.Rua;
-                usuario.IdPessoaNavigation.NumeroCasa = dto.NumeroCasa;
+                usuario.IdPessoaNavigation.NumeroCasa = dto.NumeroCasa?.ToString()?? string.Empty;
                 usuario.IdPessoaNavigation.Bairro = dto.Bairro;
                 usuario.IdPessoaNavigation.Cidade = dto.Cidade;
                 usuario.IdPessoaNavigation.Estado = dto.Estado;
