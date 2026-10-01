@@ -1,91 +1,113 @@
-using GestaoHospitalarApi.Application.DTOs;
-using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.DTOs.Medico;
+using GestaoHospitalarApi.Application.Services;
 using GestaoHospitalarApi.Application.Wrappers;
-using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GestaoHospitalarApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class MedicamentosController : ControllerBase
+    public class MedicoController : ControllerBase
     {
-        private readonly IGenericRepository<Medicamento> _medicamentoRepository;
-        private readonly IGenericRepository<Almoxarifado> _almoxarifadoRepository;
+        private readonly IMedicoService _medicoService;
 
-        public MedicamentosController(
-            IGenericRepository<Medicamento> medicamentoRepository,
-            IGenericRepository<Almoxarifado> almoxarifadoRepository)
+        public MedicoController(IMedicoService medicoService)
         {
-            _medicamentoRepository = medicamentoRepository;
-            _almoxarifadoRepository = almoxarifadoRepository;
+            _medicoService = medicoService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
+        [HttpPost("cadastrar")]
+        public async Task<IActionResult> Cadastrar([FromBody] MedicoCadastroDto dto)
         {
-            var medicamentos = await _medicamentoRepository.GetAllAsync();
-            return Ok(ResultWrapper<IEnumerable<Medicamento>>.Ok(medicamentos, "Medicamentos recuperados com sucesso."));
+            try
+            {
+                await _medicoService.CadastrarAsync(dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico cadastrado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
+
+        [HttpGet("ativos")]
+        public async Task<IActionResult> ObterAtivos()
+        {
+            var medicos = await _medicoService.ObterTodosAtivosAsync();
+            return Ok(ResultWrapper<IEnumerable<MedicoListagemDto>>.Ok(medicos));
+        }
+
+        [HttpGet("inativos")]
+        public async Task<IActionResult> ObterInativos()
+        {
+            var medicos = await _medicoService.ObterTodosInativosAsync();
+            return Ok(ResultWrapper<IEnumerable<MedicoListagemDto>>.Ok(medicos));
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> ObterPorId(int id)
         {
-            var medicamento = await _medicamentoRepository.GetByIdAsync(id);
-            if (medicamento == null)
-                return NotFound(ResultWrapper<Medicamento>.Erro("Medicamento não encontrado."));
+            var medico = await _medicoService.ObterParaEdicaoAsync(id);
+            if (medico == null)
+                return NotFound(ResultWrapper<object>.Erro("Médico não encontrado."));
 
-            return Ok(ResultWrapper<Medicamento>.Ok(medicamento, "Medicamento recuperado com sucesso."));
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] MedicamentoCadastroDto dto)
-        {
-            var itemAlmoxarifado = await _almoxarifadoRepository.GetByIdAsync(dto.IdAlmoxarifado);
-            if (itemAlmoxarifado == null)
-                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item do almoxarifado informado não existe."));
-
-            var medicamento = new Medicamento
-            {
-                IdAlmoxarifado = dto.IdAlmoxarifado,
-                PrincipioAtivo = dto.PrincipioAtivo,
-                Contraindicacoes = dto.Contraindicacoes
-            };
-
-            await _medicamentoRepository.AddAsync(medicamento);
-            await _medicamentoRepository.SaveChangesAsync();
-
-            return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Medicamento registrado com sucesso", idMedicamento = medicamento.IdMedicamento }, "Medicamento registrado com sucesso"));
+            return Ok(ResultWrapper<MedicoCadastroDto>.Ok(medico));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] MedicamentoCadastroDto dto)
+        public async Task<IActionResult> Atualizar(int id, [FromBody] MedicoCadastroDto dto)
         {
-            var medicamento = await _medicamentoRepository.GetByIdAsync(id);
-            if (medicamento == null)
-                return NotFound(ResultWrapper<Medicamento>.Erro("Medicamento não encontrado."));
+            try
+            {
+                await _medicoService.AtualizarAsync(id, dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico atualizado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-            medicamento.IdAlmoxarifado = dto.IdAlmoxarifado;
-            medicamento.PrincipioAtivo = dto.PrincipioAtivo;
-            medicamento.Contraindicacoes = dto.Contraindicacoes;
+        [HttpPatch("{id}/arquivar")]
+        public async Task<IActionResult> Arquivar(int id)
+        {
+            try
+            {
+                await _medicoService.ArquivarAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico arquivado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-            _medicamentoRepository.Update(medicamento);
-            await _medicamentoRepository.SaveChangesAsync();
-
-            return Ok(ResultWrapper<object>.Ok(new { mensagem = "Medicamento atualizado com sucesso." }, "Medicamento atualizado com sucesso."));
+        [HttpPatch("{id}/ativar")]
+        public async Task<IActionResult> Ativar(int id)
+        {
+            try
+            {
+                await _medicoService.AtivarAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico reativado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Excluir(int id)
         {
-            var medicamento = await _medicamentoRepository.GetByIdAsync(id);
-            if (medicamento == null)
-                return NotFound(ResultWrapper<Medicamento>.Erro("Medicamento não encontrado."));
-
-            _medicamentoRepository.Delete(medicamento);
-            await _medicamentoRepository.SaveChangesAsync();
-
-            return Ok(ResultWrapper<string>.Ok(string.Empty, "Medicamento removido com sucesso."));
+            try
+            {
+                await _medicoService.ExcluirAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico excluído com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
         }
     }
 }

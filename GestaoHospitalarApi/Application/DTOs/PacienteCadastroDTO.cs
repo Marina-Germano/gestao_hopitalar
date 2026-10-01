@@ -8,6 +8,7 @@ namespace GestaoHospitalarApi.Application.DTOs
         public string? Telefone { get; set; }
         public DateTime DataNascimento { get; set; }
         public string Sexo { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         // --- Dados de Endereço ---
         public string Cep { get; set; } = string.Empty;
