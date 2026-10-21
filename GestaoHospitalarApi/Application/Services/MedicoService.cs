@@ -1,4 +1,4 @@
-using GestaoHospitalarApi.Application.DTOs.Medico;
+using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Identity;

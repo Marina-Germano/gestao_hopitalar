@@ -1,4 +1,4 @@
-using GestaoHospitalarApi.Application.DTOs.Medico;
+using GestaoHospitalarApi.Application.DTOs;
 
 namespace GestaoHospitalarApi.Application.Services
 {

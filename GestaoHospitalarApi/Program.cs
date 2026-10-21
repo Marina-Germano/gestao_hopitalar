@@ -56,12 +56,20 @@ builder.Services.AddScoped<IPacienteRepository, PacienteRepository>();
 builder.Services.AddScoped<IConvenioRepository, ConvenioRepository>();
 builder.Services.AddScoped<IEspecialidadeRepository, EspecialidadeRepository>();
 builder.Services.AddScoped<IMedicoRepository, MedicoRepository>();
+builder.Services.AddScoped<ITriagemRepository, TriagemRepository>();
+builder.Services.AddScoped<ILeitoRepository, LeitoRepository>();
+builder.Services.AddScoped<ISalaRepository, SalaRepository>();
+builder.Services.AddScoped<IAlaRepository, AlaRepository>();
 
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IConvenioService, ConvenioService>();
 builder.Services.AddScoped<IPacienteService, PacienteService>();
 builder.Services.AddScoped<IEspecialidadeService, EspecialidadeService>();
 builder.Services.AddScoped<IMedicoService, MedicoService>();
+builder.Services.AddScoped<ITriagemService, TriagemService>();
+builder.Services.AddScoped<ILeitoService, LeitoService>();
+builder.Services.AddScoped<ISalaService, SalaService>();
+builder.Services.AddScoped<IAlaService, AlaService>();
 builder.Services.AddScoped<JwtService>();
 
 

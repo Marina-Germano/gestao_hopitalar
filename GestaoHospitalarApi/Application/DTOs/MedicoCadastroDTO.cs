@@ -1,4 +1,4 @@
-namespace GestaoHospitalarApi.Application.DTOs.Medico
+namespace GestaoHospitalarApi.Application.DTOs
 {
     public class MedicoCadastroDto
     {

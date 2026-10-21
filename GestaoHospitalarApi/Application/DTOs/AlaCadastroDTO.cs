@@ -1,8 +1,8 @@
-namespace GestaoHospitalarApi.Application.DTOs.Ala
+namespace GestaoHospitalarApi.Application.DTOs
 {
     public class AlaCadastroDto
     {
-        public string Nome { get; set; } = string.Empty;
+        public string NomeAla { get; set; } = string.Empty;
 
         public string? Andar { get; set; }
     }

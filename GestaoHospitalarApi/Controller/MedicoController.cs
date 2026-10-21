@@ -1,131 +1,116 @@
-// using GestaoHospitalarApi.Application.DTOs;
-// using GestaoHospitalarApi.Domain.Repositories;
-// using GestaoHospitalarApi.Application.Wrappers;
-// using GestaoHospitalarApi.Models;
-// using Microsoft.AspNetCore.Mvc;
+using GestaoHospitalarApi.Application.DTOs; // Ou o namespace correto onde está o seu DTO
+using GestaoHospitalarApi.Application.Services;
+using GestaoHospitalarApi.Application.Wrappers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-// namespace GestaoHospitalarApi.Controllers
-// {
-//     [ApiController]
-//     [Route("api/[controller]")]
-//     public class MedicosController : ControllerBase
-//     {
-//         private readonly IGenericRepository<Medico> _medicoRepository;
+namespace GestaoHospitalarApi.Controllers 
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    // [Authorize] // Pode comentar para testar sem token por enquanto
+    public class MedicoController : ControllerBase
+    {
+        private readonly IMedicoService _medicoService;
 
-//         public MedicosController(IGenericRepository<Medico> medicoRepository)
-//         {
-//             _medicoRepository = medicoRepository;
-//         }
+        public MedicoController(IMedicoService medicoService)
+        {
+            _medicoService = medicoService;
+        }
 
-//         [HttpGet]
-//         public async Task<IActionResult> GetAll()
-//         {
-//             var medicos = await _medicoRepository.GetAllAsync();
-//             return Ok(ResultWrapper<IEnumerable<Medico>>.Ok(medicos, "Médicos recuperados com sucesso."));
-//         }
+        [HttpPost("cadastrar")]
+        public async Task<IActionResult> Cadastrar([FromBody] MedicoCadastroDto dto)
+        {
+            try
+            {
+                // Toda aquela cascata de Pessoa -> Usuario -> Especialidade -> Medico acontece aqui dentro!
+                await _medicoService.CadastrarAsync(dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico cadastrado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-//         [HttpGet("{id}")]
-//         public async Task<IActionResult> GetById(int id)
-//         {
-//             var medico = await _medicoRepository.GetByIdAsync(id);
-//             if (medico == null)
-//                 return NotFound(ResultWrapper<Medico>.Erro("Médico não encontrado."));
+        [HttpGet("ativos")]
+        public async Task<IActionResult> ObterAtivos()
+        {
+            var medicos = await _medicoService.ObterTodosAtivosAsync();
+            return Ok(ResultWrapper<object>.Ok(medicos));
+        }
 
-//             return Ok(ResultWrapper<Medico>.Ok(medico, "Médico recuperado com sucesso."));
-//         }
+        [HttpGet("inativos")]
+        public async Task<IActionResult> ObterInativos()
+        {
+            var medicos = await _medicoService.ObterTodosInativosAsync();
+            return Ok(ResultWrapper<object>.Ok(medicos));
+        }
 
-//         [HttpPost]
-//         public async Task<IActionResult> Create([FromBody] MedicoCadastroDto dto)
-//         {
-//             var medico = new Medico
-//             {
-//                 IdEspecialidade = dto.IdEspecialidade,
-//                 Crm = dto.Crm,
-//                 Honorario = dto.Honorario,
-//                 IdUsuarioNavigation = new Usuario
-//                 {
-//                     Login = dto.Login,
-//                     Senha = dto.Senha,
-//                     Perfil = string.IsNullOrEmpty(dto.Perfil) ? "MEDICO" : dto.Perfil.ToUpper(),
-//                     Ativo = 1,
-//                     IdPessoaNavigation = new Pessoa
-//                     {
-//                         Nome = dto.Nome,
-//                         Cpf = dto.Cpf,
-//                         Nascimento = dto.Nascimento.HasValue
-//                         ? DateOnly.FromDateTime(dto.Nascimento.Value)
-//                         : null,
-//                         Sexo = dto.Sexo,
-//                         Telefone = dto.Telefone,
-//                         Email = dto.Email,
-//                         Rua = dto.Rua,
-//                         NumeroCasa = dto.NumeroCasa,
-//                         Bairro = dto.Bairro,
-//                         Cidade = dto.Cidade,
-//                         Estado = dto.Estado,
-//                         Cep = dto.Cep
-//                     }
-//                 }
-//             };
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObterPorId(int id)
+        {
+            var medico = await _medicoService.ObterParaEdicaoAsync(id);
+            if (medico == null)
+                return NotFound(ResultWrapper<object>.Erro("Médico não encontrado."));
 
-//             await _medicoRepository.AddAsync(medico);
-//             await _medicoRepository.SaveChangesAsync();
+            return Ok(ResultWrapper<MedicoCadastroDto>.Ok(medico));
+        }
 
-//             return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Médico cadastrado com sucesso", idMedico = medico.IdMedico }, "Médico cadastrado com sucesso"));
-//         }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Atualizar(int id, [FromBody] MedicoCadastroDto dto)
+        {
+            try
+            {
+                await _medicoService.AtualizarAsync(id, dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico atualizado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-//         [HttpPut("{id}")]
-//         public async Task<IActionResult> Update(int id, [FromBody] MedicoCadastroDto dto)
-//         {
-//             var medico = await _medicoRepository.GetByIdAsync(id);
-//             if (medico == null)
-//                 return NotFound(ResultWrapper<Medico>.Erro("Médico não encontrado."));
+        [HttpPatch("{id}/arquivar")]
+        public async Task<IActionResult> Arquivar(int id)
+        {
+            try
+            {
+                await _medicoService.ArquivarAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico arquivado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-//             medico.IdEspecialidade = dto.IdEspecialidade;
-//             medico.Crm = dto.Crm;
-//             medico.Honorario = dto.Honorario;
+        [HttpPatch("{id}/ativar")]
+        public async Task<IActionResult> Ativar(int id)
+        {
+            try
+            {
+                await _medicoService.AtivarAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico reativado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-//             if (medico.IdUsuarioNavigation != null)
-//             {
-//                 medico.IdUsuarioNavigation.Login = dto.Login;
-//                 medico.IdUsuarioNavigation.Senha = dto.Senha;
-
-//                 if (medico.IdUsuarioNavigation.IdPessoaNavigation != null)
-//                 {
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Nome = dto.Nome;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Cpf = dto.Cpf;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Nascimento = dto.Nascimento.HasValue
-//                         ? DateOnly.FromDateTime(dto.Nascimento.Value)
-//                         : null;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Sexo = dto.Sexo;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Telefone = dto.Telefone;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Email = dto.Email;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Rua = dto.Rua;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.NumeroCasa = dto.NumeroCasa;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Bairro = dto.Bairro;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Cidade = dto.Cidade;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Estado = dto.Estado;
-//                     medico.IdUsuarioNavigation.IdPessoaNavigation.Cep = dto.Cep;
-//                 }
-//             }
-
-//             _medicoRepository.Update(medico);
-//             await _medicoRepository.SaveChangesAsync();
-
-//             return Ok(ResultWrapper<object>.Ok(new { mensagem = "Médico atualizado com sucesso." }, "Médico atualizado com sucesso."));
-//         }
-
-//         [HttpDelete("{id}")]
-//         public async Task<IActionResult> Delete(int id)
-//         {
-//             var medico = await _medicoRepository.GetByIdAsync(id);
-//             if (medico == null)
-//                 return NotFound(ResultWrapper<Medico>.Erro("Médico não encontrado."));
-
-//             _medicoRepository.Delete(medico);
-//             await _medicoRepository.SaveChangesAsync();
-
-//             return Ok(ResultWrapper<string>.Ok(string.Empty, "Médico removido com sucesso."));
-//         }
-//     }
-// }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Excluir(int id)
+        {
+            try
+            {
+                await _medicoService.ExcluirAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Médico excluído com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
+    }
+}

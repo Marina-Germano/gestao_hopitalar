@@ -1,129 +1,88 @@
-// using GestaoHospitalarApi.Application.DTOs;
-// using GestaoHospitalarApi.Domain.Repositories;
-// using GestaoHospitalarApi.Application.Wrappers;
-// using GestaoHospitalarApi.Models;
-// using Microsoft.AspNetCore.Mvc;
+using GestaoHospitalarApi.Application.DTOs;
+using GestaoHospitalarApi.Application.Services;
+using GestaoHospitalarApi.Application.Wrappers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-// namespace GestaoHospitalarApi.Controllers
-// {
-//     [ApiController]
-//     [Route("api/[controller]")]
-//     public class TriagensController : ControllerBase
-//     {
-//         private readonly IGenericRepository<Triagem> _triagemRepository;
-//         private readonly IGenericRepository<Paciente> _pacienteRepository;
-//         private readonly IGenericRepository<PacienteConvenio> _pacienteConvenioRepository;
+namespace GestaoHospitalarApi.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    //[Authorize] // Bloqueia a rota inteira para usuários não logados
+    public class TriagemController : ControllerBase
+    {
+        private readonly ITriagemService _triagemService;
 
-//         public TriagensController(
-//             IGenericRepository<Triagem> triagemRepository, 
-//             IGenericRepository<Paciente> pacienteRepository,
-//             IGenericRepository<PacienteConvenio> pacienteConvenioRepository)
-//         {
-//             _triagemRepository = triagemRepository;
-//             _pacienteRepository = pacienteRepository;
-//             _pacienteConvenioRepository = pacienteConvenioRepository;
-//         }
+        public TriagemController(ITriagemService triagemService)
+        {
+            _triagemService = triagemService;
+        }
 
-//         [HttpGet]
-//         public async Task<IActionResult> GetAll()
-//         {
-//             var triagens = await _triagemRepository.GetAllAsync();
-//             return Ok(ResultWrapper<IEnumerable<Triagem>>.Ok(triagens, "Triagens recuperadas com sucesso."));
-//         }
+        [HttpPost("cadastrar")]
+        public async Task<IActionResult> Cadastrar([FromBody] TriagemCadastroDto dto)
+        {
+            try
+            {
+                // Extrai o login do usuário direto do Token JWT
+                var loginUsuarioLogado = User.FindFirst(ClaimTypes.Name)?.Value 
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-//         [HttpGet("{id}")]
-//         public async Task<IActionResult> GetById(int id)
-//         {
-//             var triagem = await _triagemRepository.GetByIdAsync(id);
-//             if (triagem == null)
-//                 return NotFound(ResultWrapper<Triagem>.Erro("Triagem não encontrada."));
+                if (string.IsNullOrEmpty(loginUsuarioLogado))
+                    return Unauthorized(ResultWrapper<object>.Erro("Usuário não identificado no token."));
 
-//             return Ok(ResultWrapper<Triagem>.Ok(triagem, "Triagem recuperada com sucesso."));
-//         }
+                await _triagemService.CadastrarAsync(dto, loginUsuarioLogado);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Triagem registrada com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-//         [HttpPost]
-//         public async Task<IActionResult> Create([FromBody] TriagemCadastroDto dto)
-//         {
-//             var paciente = await _pacienteRepository.GetByIdAsync(dto.IdPaciente);
-//             if (paciente == null)
-//                 return NotFound(ResultWrapper<Paciente>.Erro("Paciente informado não foi encontrado."));
+        [HttpGet]
+        public async Task<IActionResult> ObterTodas()
+        {
+            var triagens = await _triagemService.ObterTodasAsync();
+            return Ok(ResultWrapper<IEnumerable<TriagemListagemDto>>.Ok(triagens));
+        }
 
-//             var triagem = new Triagem
-//             {
-//                 IdPaciente = dto.IdPaciente,
-//                 ResponsavelTriagem = dto.ResponsavelTriagem,
-//                 Pressao = dto.Pressao,
-//                 Temperatura = dto.Temperatura,
-//                 FrequenciaCardiaca = dto.FrequenciaCardiaca,
-//                 Saturacao = dto.Saturacao,
-//                 EscalaDor = dto.EscalaDor,
-//                 Risco = dto.Risco,
-//                 Queixa = dto.Queixa,
-//                 Alergias = dto.Alergias,
-//                 Observacoes = dto.Observacoes,
-//                 Internacao = dto.Internacao
-//             };
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObterPorId(int id)
+        {
+            var triagem = await _triagemService.ObterParaEdicaoAsync(id);
+            if (triagem == null)
+                return NotFound(ResultWrapper<object>.Erro("Triagem não encontrada."));
 
-//             await _triagemRepository.AddAsync(triagem);
+            return Ok(ResultWrapper<TriagemCadastroDto>.Ok(triagem));
+        }
 
-//             // Se as informações de convênio foram enviadas na triagem, vincula na tabela paciente_convenio
-//             if (dto.IdConvenio.HasValue && dto.IdConvenio.Value > 0)
-//             {
-//                 var pacienteConvenio = new PacienteConvenio
-//                 {
-//                     IdPaciente = dto.IdPaciente,
-//                     IdConvenio = dto.IdConvenio.Value,
-//                     NumeroCarteira = dto.NumeroCarteira,
-//                     Validade = dto.ValidadeConvenio.HasValue
-//                         ? DateOnly.FromDateTime(dto.ValidadeConvenio.Value)
-//                         : DateOnly.FromDateTime(DateTime.Now.AddYears(1)),
-//                     Ativo = 1
-//                 };
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Atualizar(int id, [FromBody] TriagemCadastroDto dto)
+        {
+            try
+            {
+                await _triagemService.AtualizarAsync(id, dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Triagem atualizada com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
 
-//                 await _pacienteConvenioRepository.AddAsync(pacienteConvenio);
-//             }
-
-//             await _triagemRepository.SaveChangesAsync();
-
-//             return StatusCode(201, ResultWrapper<object>.Ok(new { mensagem = "Triagem registrada com sucesso", idTriagem = triagem.IdTriagem }, "Triagem registrada com sucesso"));
-//         }
-
-//         [HttpPut("{id}")]
-//         public async Task<IActionResult> Update(int id, [FromBody] TriagemCadastroDto dto)
-//         {
-//             var triagem = await _triagemRepository.GetByIdAsync(id);
-//             if (triagem == null)
-//                 return NotFound(ResultWrapper<Triagem>.Erro("Triagem não encontrada."));
-
-//             triagem.ResponsavelTriagem = dto.ResponsavelTriagem;
-//             triagem.Pressao = dto.Pressao;
-//             triagem.Temperatura = dto.Temperatura;
-//             triagem.FrequenciaCardiaca = dto.FrequenciaCardiaca;
-//             triagem.Saturacao = dto.Saturacao;
-//             triagem.EscalaDor = dto.EscalaDor;
-//             triagem.Risco = dto.Risco;
-//             triagem.Queixa = dto.Queixa;
-//             triagem.Alergias = dto.Alergias;
-//             triagem.Observacoes = dto.Observacoes;
-//             triagem.Internacao = dto.Internacao;
-
-//             _triagemRepository.Update(triagem);
-//             await _triagemRepository.SaveChangesAsync();
-
-//             return Ok(ResultWrapper<object>.Ok(new { mensagem = "Triagem atualizada com sucesso." }, "Triagem atualizada com sucesso."));
-//         }
-
-//         [HttpDelete("{id}")]
-//         public async Task<IActionResult> Delete(int id)
-//         {
-//             var triagem = await _triagemRepository.GetByIdAsync(id);
-//             if (triagem == null)
-//                 return NotFound(ResultWrapper<Triagem>.Erro("Triagem não encontrada."));
-
-//             _triagemRepository.Delete(triagem);
-//             await _triagemRepository.SaveChangesAsync();
-
-//             return Ok(ResultWrapper<string>.Ok(string.Empty, "Triagem removida com sucesso."));
-//         }
-//     }
-// }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Excluir(int id)
+        {
+            try
+            {
+                await _triagemService.ExcluirAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Triagem excluída com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
+    }
+}
