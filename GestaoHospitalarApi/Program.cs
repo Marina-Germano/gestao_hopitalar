@@ -60,6 +60,16 @@ builder.Services.AddScoped<ITriagemRepository, TriagemRepository>();
 builder.Services.AddScoped<ILeitoRepository, LeitoRepository>();
 builder.Services.AddScoped<ISalaRepository, SalaRepository>();
 builder.Services.AddScoped<IAlaRepository, AlaRepository>();
+builder.Services.AddScoped<IAgendamentoRepository, AgendamentoRepository>();
+builder.Services.AddScoped<IMedicamentoRepository, MedicamentoRepository>();
+builder.Services.AddScoped<IExameRepository, ExameRepository>();
+builder.Services.AddScoped<ISolicitacaoExameRepository, SolicitacaoExameRepository>();
+builder.Services.AddScoped<IPrescricaoRepository, PrescricaoRepository>();
+builder.Services.AddScoped<IConsumoItemRepository, ConsumoItemRepository>();
+builder.Services.AddScoped<IInteracaoRepository, InteracaoRepository>();
+builder.Services.AddScoped<IInternacaoRepository, InternacaoRepository>();
+builder.Services.AddScoped<IPacienteConvenioRepository, PacienteConvenioRepository>();
+builder.Services.AddScoped<IFaturamentoRepository, FaturamentoRepository>();
 
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IConvenioService, ConvenioService>();
@@ -70,7 +80,16 @@ builder.Services.AddScoped<ITriagemService, TriagemService>();
 builder.Services.AddScoped<ILeitoService, LeitoService>();
 builder.Services.AddScoped<ISalaService, SalaService>();
 builder.Services.AddScoped<IAlaService, AlaService>();
-builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
+builder.Services.AddScoped<IMedicamentoService, MedicamentoService>();
+builder.Services.AddScoped<IExameService, ExameService>();
+builder.Services.AddScoped<IPrescricaoService, PrescricaoService>();
+builder.Services.AddScoped<IConsumoItemService, ConsumoItemService>();
+builder.Services.AddScoped<IInteracaoService, InteracaoService>();
+builder.Services.AddScoped<IInternacaoService, InternacaoService>();
+builder.Services.AddScoped<IPacienteConvenioService, PacienteConvenioService>();
+builder.Services.AddScoped<IFaturamentoService, FaturamentoService>();
+builder.Services.AddScoped<JwtService, JwtService>();
 
 
 builder.Services.AddCors(options =>

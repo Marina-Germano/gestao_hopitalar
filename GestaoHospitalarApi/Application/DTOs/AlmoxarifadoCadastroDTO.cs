@@ -12,4 +12,9 @@ namespace GestaoHospitalarApi.Application.DTOs
         public string? Lote { get; set; }
         public DateTime? Validade { get; set; }
     }
+
+    public class AlmoxarifadoListagemDto : AlmoxarifadoCadastroDto
+    {
+        public int IdAlmoxarifado { get; set; }
+    }
 }

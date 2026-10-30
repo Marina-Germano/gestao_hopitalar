@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestaoHospitalarApi.Models;
 
@@ -27,7 +28,9 @@ public partial class Faturamento
 
     public string? Observacao { get; set; }
 
+    [ForeignKey("idAuditoria")]
     public virtual ICollection<Auditorium> Auditoria { get; set; } = new List<Auditorium>();
 
+    [ForeignKey("IdInternacao")]
     public virtual Internacao IdInternacaoNavigation { get; set; } = null!;
 }

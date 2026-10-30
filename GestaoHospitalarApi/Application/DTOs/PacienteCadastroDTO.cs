@@ -29,11 +29,11 @@ namespace GestaoHospitalarApi.Application.DTOs
         public PacienteConvenioCadastroDto? Convenio { get; set; }
     }
 
-    public class PacienteConvenioCadastroDto
-    {
-        // Recebe o nome em vez do ID, conforme selecionado na lista do frontend
-        public string NomeConvenio { get; set; } = string.Empty; 
-        public string Numero { get; set; } = string.Empty;
-        public DateTime Validade { get; set; }
-    }
+    // public class PacienteConvenioCadastroDto
+    // {
+    //     // Recebe o nome em vez do ID, conforme selecionado na lista do frontend
+    //     public string NomeConvenio { get; set; } = string.Empty; 
+    //     public string Numero { get; set; } = string.Empty;
+    //     public DateTime Validade { get; set; }
+    // }
 }

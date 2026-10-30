@@ -32,4 +32,20 @@ namespace GestaoHospitalarApi.Application.DTOs
         public string NomeExame { get; set; } = string.Empty;
         public decimal ValorExame { get; set; }
     }
+
+    public class FaturamentoListagemDto
+    {
+        public int IdFaturamento { get; set; }
+        public int IdInternacao { get; set; }
+        public string NomePaciente { get; set; } = string.Empty;
+        public decimal TotalMedicamentos { get; set; }
+        public decimal TotalExames { get; set; }
+        public decimal TotalInternacao { get; set; }
+        public decimal TotalHonorarios { get; set; }
+        public decimal TotalConsumo { get; set; }
+        public decimal ValorTotal { get; set; }
+        public string StatusPagamento { get; set; } = string.Empty;
+        public DateTime? DataFechamento { get; set; }
+        public string? Observacao { get; set; }
+    }
 }

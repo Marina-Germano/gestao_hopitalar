@@ -11,6 +11,7 @@ public partial class Sala
     public int IdAla { get; set; }
 
     public string Nome { get; set; } = null!;
+    public string? Tipo { get; set; }
 
     public string? Status { get; set; }
     

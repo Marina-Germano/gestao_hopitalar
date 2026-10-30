@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestaoHospitalarApi.Models;
 
@@ -17,9 +18,12 @@ public partial class Agendamento
 
     public string? Status { get; set; }
 
+    [ForeignKey("IdMedico")]
     public virtual Medico IdMedicoNavigation { get; set; } = null!;
 
+    [ForeignKey("IdPaciente")]
     public virtual Paciente IdPacienteNavigation { get; set; } = null!;
 
+    [ForeignKey("IdSala")]
     public virtual Sala IdSalaNavigation { get; set; } = null!;
 }

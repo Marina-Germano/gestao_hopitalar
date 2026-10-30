@@ -6,4 +6,9 @@ namespace GestaoHospitalarApi.Application.DTOs
         public decimal? Valor { get; set; }
         public string? Descricao { get; set; }
     }
+
+    public class ExameListagemDto : ExameCadastroDto
+    {
+        public int IdExame { get; set; }
+    }
 }

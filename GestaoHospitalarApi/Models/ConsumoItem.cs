@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestaoHospitalarApi.Models;
 
@@ -17,7 +18,9 @@ public partial class ConsumoItem
 
     public string? Observacao { get; set; }
 
+    [ForeignKey("IdAlmoxarifado")]
     public virtual Almoxarifado IdAlmoxarifadoNavigation { get; set; } = null!;
 
+    [ForeignKey("IdInternacao")]
     public virtual Internacao IdInternacaoNavigation { get; set; } = null!;
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GestaoHospitalarApi.Models;
 
@@ -21,9 +22,12 @@ public partial class Prescricao
 
     public string? Observacao { get; set; }
 
+    [ForeignKey("IdMedicamento")]
     public virtual Medicamento IdMedicamentoNavigation { get; set; } = null!;
 
+    [ForeignKey("IdMedico")]
     public virtual Medico IdMedicoNavigation { get; set; } = null!;
 
+    [ForeignKey("IdProntuario")]
     public virtual Prontuario IdProntuarioNavigation { get; set; } = null!;
 }

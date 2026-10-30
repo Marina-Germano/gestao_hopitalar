@@ -85,7 +85,7 @@ namespace GestaoHospitalarApi.Application.Services
                 Status = s.Status ?? "LIVRE",
                 IdAla = s.IdAla,
                 NomeAla = s.IdAlaNavigation?.NomeAla ?? "",
-                AndarAla = s.IdAlaNavigation?.Andar ?? ""
+                //AndarAla = s.IdAlaNavigation?.Andar ?? ""
             });
         }
     }
