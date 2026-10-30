@@ -75,10 +75,9 @@ class _TelaArquivoState extends State<TelaArquivo> {
     final qNum = _digitos(q);
     return todos.where((p) {
       final nomeOk = _norm('${p['nome'] ?? ''}').contains(qNome);
-      final numOk = qNum.isNotEmpty &&
-          (_digitos('${p['cpf'] ?? ''}').contains(qNum) ||
-              _digitos('${p['rg'] ?? ''}').contains(qNum));
-      return nomeOk || numOk;
+      final crmOk = qNum.isNotEmpty &&
+          _digitos('${p['crm'] ?? ''}').contains(qNum);
+      return nomeOk || crmOk;
     }).toList();
   }
 
@@ -87,11 +86,12 @@ class _TelaArquivoState extends State<TelaArquivo> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text('${item['nome']}'),
+        
         content: Text(
-          'CPF: ${item['cpf'] ?? '-'}\n'
-          'Identidade: ${item['rg'] ?? '-'}\n\n'
+          'CRM: ${item['crm'] ?? '-'}\n'
           'Deseja restaurar este registro?',
         ),
+
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -123,7 +123,7 @@ class _TelaArquivoState extends State<TelaArquivo> {
             TextField(
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
-                hintText: 'Buscar por nome, CPF ou identidade',
+                hintText: 'Buscar por nome ou CRM',
                 border: OutlineInputBorder(),
               ),
               onChanged: (v) => setState(() => busca = v),
@@ -141,7 +141,7 @@ class _TelaArquivoState extends State<TelaArquivo> {
                         return ListTile(
                           leading: const Icon(Icons.person),
                           title: Text('${p['nome']}'),
-                          subtitle: Text('CPF: ${p['cpf'] ?? '-'}'),
+                          subtitle: Text('CRM: ${p['crm'] ?? '-'}'),
                           onTap: () => _abrirItem(p),
                         );
                       },

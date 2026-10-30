@@ -3719,19 +3719,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Marin\\.nuget\\packages\\": {}
+    "C:\\Users\\DELL\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
+      "projectUniqueName": "C:\\Users\\DELL\\Desktop\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
       "projectName": "GestaoHospitalarApi",
-      "projectPath": "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
-      "packagesPath": "C:\\Users\\Marin\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Marin\\gestao_hopitalar\\GestaoHospitalarApi\\obj\\",
+      "projectPath": "C:\\Users\\DELL\\Desktop\\gestao_hopitalar\\GestaoHospitalarApi\\GestaoHospitalarApi.csproj",
+      "packagesPath": "C:\\Users\\DELL\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\DELL\\Desktop\\gestao_hopitalar\\GestaoHospitalarApi\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Marin\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\DELL\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -3755,7 +3755,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.300"
+      "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
       "net9.0": {
@@ -3799,6 +3799,24 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[9.0.11, 9.0.11]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.win-x64",
+            "version": "[9.0.11, 9.0.11]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[9.0.11, 9.0.11]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[9.0.11, 9.0.11]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.AspNetCore.App": {
             "privateAssets": "none"
@@ -3807,7 +3825,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

@@ -1,26 +1,64 @@
-import 'package:sqflite/sqflite.dart';
-import '../entities/medico.dart';
+
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 class AuthService {
-  final Database _db;
+  // Para executar no Windows, use localhost.
+  // No emulador Android, troque localhost por 10.0.2.2.
+  static const String baseUrl = 'http://localhost:5111/api/Usuarios';
 
-  AuthService(this._db);
+  Future<String?> autenticarMedico(String crm, String senha) async {
+    final uri = Uri.parse('$baseUrl/login');
 
-  // Retorna o Médico se encontrar, ou null se não encontrar
-  Future<Medico?> autenticarMedico(String crm, String senha) async {
-    // 1. Busca o médico pelo CRM
-    final List<Map<String, dynamic>> resultado = await _db.query(
-      'medico',
-      where: 'crm = ?',
-      whereArgs: [crm.trim()], // Garantimos que estamos buscando o CRM correto
-    );
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'login': crm.trim(),
+              'senha': senha,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
-    if (resultado.isNotEmpty) {
-      // 2. Valida a senha (aqui você pode adicionar hash no futuro)
-      if (senha == '123456') { 
-        return Medico.fromMap(resultado.first);
+      debugPrint('Login API - status: ${response.statusCode}');
+
+      if (response.statusCode == 401) {
+        return null;
       }
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'A API retornou o erro ${response.statusCode}.',
+        );
+      }
+
+      final Map<String, dynamic> resposta =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      // A API retorna o token dentro de "dados".
+      final dados = resposta['dados'] ?? resposta['Dados'];
+
+      if (dados is Map) {
+        final token = dados['token'] ?? dados['Token'];
+
+        if (token is String && token.isNotEmpty) {
+          return token;
+        }
+      }
+
+      throw Exception(
+        'A API respondeu, mas não retornou o token esperado.',
+      );
+    } catch (e) {
+      debugPrint('Erro ao autenticar médico: $e');
+      rethrow;
     }
-    return null; // CRM não encontrado ou senha errada
   }
 }

@@ -11,6 +11,7 @@ import 'pacientes/cadastrar_paciente.dart';
 import 'medicos/listar_medico.dart';
 import 'medicos/cadastrar_medico.dart';
 import 'medicos/agenda_medica.dart';
+import 'dart:async';
 
 // CONVENIO
 import 'convenios/listar_convenio.dart';
@@ -90,7 +91,7 @@ class _DashboardState extends State<Dashboard> {
     _pacienteService = PacienteService(widget.database);
     _pacienteService.carregarPacientes();
 
-    _medicoService = MedicoService(widget.database);
+    _medicoService = MedicoService();
     _medicoService.carregarMedicos();
 
     _convenioService = ConvenioService(widget.database);
@@ -448,10 +449,11 @@ class _DashboardState extends State<Dashboard> {
               ElevatedButton.icon(
                   onPressed: () => abrirDialogoLateral(TelaArquivo(
                       titulo: 'Arquivo de Médicos',
-                      carregarArquivados:
-                          _arquivoService.listarMedicosArquivados,
+                      // 🟢 1. Aponta para a função nova do MedicoService que busca os dados no C#
+                      carregarArquivados: _medicoService.listarMedicosArquivadosEmMap,
                       restaurar: (id) async {
-                        await _arquivoService.restaurarMedico(id);
+                        // 🟢 2. Aponta para a função nova de restauração no C#
+                        await _medicoService.restaurarMedicoPorId(id);
                         await _medicoService.carregarMedicos();
                       })),
                   icon: const Icon(Icons.archive),

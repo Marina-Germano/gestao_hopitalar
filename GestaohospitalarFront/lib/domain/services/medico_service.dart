@@ -1,108 +1,371 @@
-// lib/domain/services/medico_service.dart
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
 import '../entities/medico.dart';
+import '../../data/resources/api_response.dart';
 
 class MedicoService extends ChangeNotifier {
-  final dynamic database;
-
-  MedicoService(this.database);
+  static const String baseUrl = 'http://localhost:5111/api/Medico';
 
   List<Medico> _medicos = [];
+
   List<Medico> get medicos => _medicos;
 
-  /// Carrega apenas os médicos ATIVOS (ativo = 1) do banco de dados
-  Future<void> carregarMedicos() async {
+  // GET: Listar médicos ativos
+  Future<List<Medico>> listarMedicos() async {
     try {
-      final List<Map<String, dynamic>> maps = await database.query(
-        'medicos',
-        where: 'ativo = ?',
-        whereArgs: [1],
-      );
+      final response = await http.get(Uri.parse('$baseUrl/ativos'));
 
-      _medicos = maps.map((map) => Medico.fromMap(map)).toList();
-      notifyListeners();
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        final apiResponse = ApiResponse<List<Medico>>.fromJson(
+          jsonResponse,
+          (dados) => (dados as List)
+              .map(
+                (item) => Medico.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(),
+        );
+
+        _medicos = apiResponse.dados ?? [];
+        notifyListeners();
+        return _medicos;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
     } catch (e) {
-      debugPrint('Erro ao carregar médicos: $e');
+      throw Exception('Erro ao carregar médicos: $e');
     }
   }
 
-  /// Método exigido por telas de listagem que chamam .listarMedicos()
-  Future<List<Medico>> listarMedicos() async {
-    await carregarMedicos();
-    return _medicos;
+  // GET: Atualizar a lista de médicos
+  Future<void> carregarMedicos() async {
+    await listarMedicos();
   }
 
-  /// Salva um novo médico ou atualiza um existente
-  Future<void> salvarMedicoComEspecialidade(Medico medico, String especialidade) async {
+  // GET: Listar médicos arquivados
+  Future<List<Medico>> listarMedicosArquivados() async {
     try {
-      final mapMedico = medico.toMap();
-      mapMedico['ativo'] = 1; // Garante que o médico seja criado como ativo
+      final response = await http.get(Uri.parse('$baseUrl/inativos'));
 
-      if (medico.id == null) {
-        await database.insert('medicos', mapMedico);
-      } else {
-        await database.update(
-          'medicos',
-          mapMedico,
-          where: 'id = ?',
-          whereArgs: [medico.id],
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        final apiResponse = ApiResponse<List<Medico>>.fromJson(
+          jsonResponse,
+          (dados) => (dados as List)
+              .map(
+                (item) => Medico.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(),
+        );
+
+        return apiResponse.dados ?? [];
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
+    } catch (e) {
+      throw Exception('Erro ao carregar médicos arquivados: $e');
+    }
+  }
+
+  // GET: Buscar médico pelo ID (modelo básico Medico)
+  Future<Medico?> buscarMedicoPorId(int id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/$id'));
+
+      if (response.statusCode == 404) {
+        return null;
+      }
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        final apiResponse = ApiResponse<Medico>.fromJson(
+          jsonResponse,
+          (dados) => Medico.fromJson(
+            Map<String, dynamic>.from(dados),
+          ),
+        );
+
+        return apiResponse.dados;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
+    } catch (e) {
+      throw Exception('Erro ao buscar médico: $e');
+    }
+  }
+
+  // NOVO GET: Buscar todos os dados do médico para preencher a edição
+    Future<Map<String, dynamic>?> buscarDadosMedicoParaEdicao(
+    int id,
+  ) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/$id'));
+
+      debugPrint('Buscar médico para edição - status: ${response.statusCode}');
+      debugPrint('Buscar médico para edição - resposta: ${response.body}');
+
+      if (response.statusCode == 404) {
+        return null;
+      }
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Status ${response.statusCode}: ${response.body}',
         );
       }
-      await carregarMedicos(); // Atualiza a lista e notifica a tela
+
+      final json = jsonDecode(response.body);
+
+      if (json is! Map) {
+        throw Exception('A API não retornou um objeto JSON válido.');
+      }
+
+      Map<String, dynamic> dados = Map<String, dynamic>.from(json);
+
+      // Aceita envelopes comuns usados pela API.
+      for (final chave in ['dados', 'data', 'medico', 'resultado']) {
+        final entrada = dados.entries.where(
+          (e) => e.key.toLowerCase() == chave,
+        );
+
+        if (entrada.isNotEmpty && entrada.first.value is Map) {
+          dados = Map<String, dynamic>.from(entrada.first.value as Map);
+          break;
+        }
+      }
+
+      debugPrint('Dados encontrados para edição: $dados');
+
+      return dados;
+    } catch (e) {
+      debugPrint('Erro ao buscar dados para edição: $e');
+      rethrow;
+    }
+  }
+
+  // POST: Cadastrar médico usando o DTO da API
+  Future<bool> cadastrarMedico(Medico medico) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/cadastrar'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(medico.toJson()),
+      );
+
+      debugPrint('Cadastro de médico: ${response.statusCode}');
+      debugPrint('Resposta da API: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await carregarMedicos();
+        return true;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
+    } catch (e) {
+      throw Exception('Erro ao cadastrar médico: $e');
+    }
+  }
+
+  // POST/PUT: Salvar médico usando todos os dados do formulário
+  Future<void> salvarMedicoComDados({
+    required int? id,
+    required Map<String, dynamic> dados,
+  }) async {
+    try {
+      final bool cadastrando = id == null;
+
+      final response = cadastrando
+          ? await http.post(
+              Uri.parse('$baseUrl/cadastrar'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode(dados),
+            )
+          : await http.put(
+              Uri.parse('$baseUrl/$id'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode(dados),
+            );
+
+      debugPrint('Salvar médico - status: ${response.statusCode}');
+      debugPrint('Salvar médico - resposta: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await carregarMedicos();
+        return;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
+    } catch (e) {
+      debugPrint('Erro ao salvar médico: $e');
+      rethrow;
+    }
+  }
+
+  // Mantido para compatibilidade com chamadas antigas
+  Future<void> salvarMedicoComEspecialidade(
+    Medico medico,
+    String especialidade,
+  ) async {
+    try {
+      if (medico.id == null) {
+        await cadastrarMedico(medico);
+      } else {
+        await atualizarMedico(medico.id!, medico);
+      }
     } catch (e) {
       throw Exception('Erro ao salvar médico: $e');
     }
   }
 
-  /// Arquiva (soft delete) o médico alterando o status 'ativo' para 0
-  Future<void> arquivarMedico(Medico medico) async {
+  // PUT: Atualizar médico pelo modelo Medico
+  Future<bool> atualizarMedico(int id, Medico medico) async {
     try {
-      if (medico.id == null) return;
-
-      await database.update(
-        'medicos',
-        {'ativo': 0},
-        where: 'id = ?',
-        whereArgs: [medico.id],
+      final response = await http.put(
+        Uri.parse('$baseUrl/$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(medico.toJson()),
       );
 
-      await carregarMedicos(); // Atualiza a lista e notifica a tela
+      debugPrint('Atualizar médico - status: ${response.statusCode}');
+      debugPrint('Atualizar médico - resposta: ${response.body}');
+
+      if (response.statusCode == 200) {
+        await carregarMedicos();
+        return true;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
     } catch (e) {
-      throw Exception('Erro ao arquivar médico: $e');
+      throw Exception('Erro ao atualizar médico: $e');
     }
   }
 
-  /// Restaura o médico arquivado alterando o status 'ativo' para 1
-  Future<void> restaurarMedico(Medico medico) async {
-    try {
-      if (medico.id == null) return;
+  // PATCH: Arquivar médico
+  Future<bool> arquivarMedico(Medico medico) async {
+    final id = medico.id;
 
-      await database.update(
-        'medicos',
-        {'ativo': 1},
-        where: 'id = ?',
-        whereArgs: [medico.id],
+    if (id == null) {
+      throw Exception('O médico não possui um ID válido.');
+    }
+
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/$id/arquivar'),
+        headers: {'Content-Type': 'application/json'},
       );
 
-      await carregarMedicos(); // Atualiza a lista e notifica a tela
+      debugPrint('Arquivar médico - ID: $id');
+      debugPrint('Arquivar médico - status: ${response.statusCode}');
+      debugPrint('Arquivar médico - resposta: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        await carregarMedicos();
+        notifyListeners();
+        return true;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
     } catch (e) {
-      throw Exception('Erro ao restaurar médico: $e');
+      debugPrint('Erro ao arquivar médico: $e');
+      rethrow;
     }
   }
 
-  /// Lista todos os médicos arquivados (ativo = 0)
-  Future<List<Medico>> listarMedicosArquivados() async {
+  // PATCH: Reativar médico
+  Future<bool> restaurarMedico(Medico medico) async {
     try {
-      final List<Map<String, dynamic>> maps = await database.query(
-        'medicos',
-        where: 'ativo = ?',
-        whereArgs: [0],
+      if (medico.id == null) {
+        throw Exception('O médico não possui um ID válido.');
+      }
+
+      final response = await http.patch(
+        Uri.parse('$baseUrl/${medico.id}/ativar'),
       );
 
-      return maps.map((map) => Medico.fromMap(map)).toList();
+      if (response.statusCode == 200) {
+        await carregarMedicos();
+        notifyListeners(); // <--- ADICIONE ESTA LINHA AQUI
+        return true;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
     } catch (e) {
-      debugPrint('Erro ao carregar médicos arquivados: $e');
-      return [];
+      throw Exception('Erro ao reativar médico: $e');
     }
   }
+
+  // DELETE: Excluir médico
+  Future<bool> excluirMedico(int id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/$id'));
+
+      if (response.statusCode == 200) {
+        await carregarMedicos();
+        return true;
+      }
+
+      throw Exception(
+        'Status ${response.statusCode}: ${response.body}',
+      );
+    } catch (e) {
+      throw Exception('Erro ao excluir médico: $e');
+    }
+  }
+  // GET: Listar médicos arquivados como Map
+Future<List<Map<String, dynamic>>> listarMedicosArquivadosEmMap() async {
+  final medicosArquivados = await listarMedicosArquivados();
+
+  return medicosArquivados.map((medico) => medico.toJson()).toList();
+}
+// PATCH: Restaurar médico pelo ID
+Future<bool> restaurarMedicoPorId(int id) async {
+  try {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/$id/ativar'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    debugPrint('Restaurar médico - ID: $id');
+    debugPrint('Restaurar médico - status: ${response.statusCode}');
+    debugPrint('Restaurar médico - resposta: ${response.body}');
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      await carregarMedicos();
+      notifyListeners();
+      return true;
+    }
+
+    throw Exception(
+      'Status ${response.statusCode}: ${response.body}',
+    );
+  } catch (e) {
+    debugPrint('Erro ao restaurar médico: $e');
+    rethrow;
+  }
+}
 }

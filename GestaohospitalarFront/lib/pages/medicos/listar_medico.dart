@@ -175,6 +175,69 @@ class _ListarMedicoState extends State<ListarMedico> {
                               }
                             },
                           ),
+                          // 🗑️ Excluir Médico Permanentemente
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Color.fromARGB(255, 244, 67, 54),
+                            ),
+                            tooltip: "Excluir Médico",
+                            onPressed: () async {
+                              if (medico.id == null) return;
+                              final confirmar = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text("Excluir Médico?"),
+                                  content: Text(
+                                    "Tem certeza que deseja excluir permanentemente o cadastro de $nomeMedico? Esta ação não poderá ser desfeita.",
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text("Cancelar"),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            const Color.fromARGB(255, 244, 67, 54),
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text("Excluir"),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirmar == true) {
+                                try {
+                                  await widget.service.excluirMedico(medico.id!);
+                                  await _carregarMedicos();
+
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Médico $nomeMedico excluído permanentemente!',
+                                        ),
+                                        backgroundColor:
+                                            const Color.fromARGB(255, 244, 67, 54),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Erro ao excluir: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                          ),
                         ],
                       ),
                     );

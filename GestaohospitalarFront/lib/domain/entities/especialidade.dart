@@ -1,27 +1,27 @@
-// lib/domain/entities/especialidade.dart
+
 import 'entitie.dart';
 
 class Especialidade extends Entitie {
-  final String? descricaoEspecialidade; // Mudei para bater com o banco
+  final String? descricaoEspecialidade;
 
   Especialidade({
     super.id,
     this.descricaoEspecialidade,
   });
 
-  // Converte de Dart para SQLite
-  Map<String, dynamic> toMap() {
+  // Converte de Dart para JSON
+  Map<String, dynamic> toJson() {
     return {
-      'id_especialidade': id,
-      'descricao_especialidade': descricaoEspecialidade, // Coluna exata do seu SQLite!
+      'idEspecialidade': id,
+      'descricaoEspecialidade': descricaoEspecialidade,
     };
   }
 
-  // Converte de SQLite para Dart
-  factory Especialidade.fromMap(Map<String, dynamic> map) {
+  // Converte de JSON para Dart
+  factory Especialidade.fromJson(Map<String, dynamic> json) {
     return Especialidade(
-      id: map['id_especialidade'],
-      descricaoEspecialidade: map['descricao_especialidade'],
+      id: json['idEspecialidade'],
+      descricaoEspecialidade: json['descricaoEspecialidade'],
     );
   }
 }
