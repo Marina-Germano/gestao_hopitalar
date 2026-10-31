@@ -103,7 +103,7 @@ class _DashboardState extends State<Dashboard> {
     _exameService = ExameService();
     _exameService.carregarExames();
 
-    _almoxarifadoService = AlmoxarifadoService(widget.database);
+    _almoxarifadoService = AlmoxarifadoService();
 
     _alaService = AlaService();
 

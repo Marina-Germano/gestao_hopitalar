@@ -1,34 +1,40 @@
+
 import 'entitie.dart';
 
 class Sala extends Entitie {
   String? nomeSala;
   String? tipo;
   String status;
+  int? idAla;
+  String? nomeAla;
 
   Sala({
     super.id,
     this.nomeSala,
     this.tipo,
-    this.status = 'LIVRE', // Valor padrão
+    this.status = 'LIVRE',
+    this.idAla,
+    this.nomeAla,
   });
 
-  /// Converte o objeto para um Map para salvar no banco
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      if (id != null) 'id_sala': id,
-      'nome_sala': nomeSala,
+      if (id != null) 'idSala': id,
+      'nome': nomeSala,
       'tipo': tipo,
       'status': status,
+      if (idAla != null) 'idAla': idAla,
     };
   }
 
-  /// Cria o objeto a partir de um Map do banco
-  factory Sala.fromMap(Map<String, dynamic> map) {
+  factory Sala.fromJson(Map<String, dynamic> json) {
     return Sala(
-      id: map['id_sala'],
-      nomeSala: map['nome_sala'],
-      tipo: map['tipo'] ?? 'Geral',
-      status: map['status'] ?? 'LIVRE',
+      id: json['idSala'] ?? json['id'],
+      nomeSala: json['nome'] ?? json['nomeSala'],
+      tipo: json['tipo']?.toString(),
+      status: json['status'] ?? 'LIVRE',
+      idAla: json['idAla'],
+      nomeAla: json['nomeAla'],
     );
   }
 }

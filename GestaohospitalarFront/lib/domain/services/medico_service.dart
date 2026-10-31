@@ -307,7 +307,7 @@ class MedicoService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         await carregarMedicos();
-        notifyListeners(); // <--- ADICIONE ESTA LINHA AQUI
+        notifyListeners();
         return true;
       }
 

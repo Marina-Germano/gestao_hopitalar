@@ -45,15 +45,28 @@ namespace GestaoHospitalarApi.Application.Services
             var almox = await _almoxRepository.GetByIdAsync(med.IdAlmoxarifado);
 
             // Atualiza Estoque
-            almox.Nome = dto.Nome; almox.Descricao = dto.Descricao; almox.Quantidade = dto.Quantidade;
-            almox.ValorUnitario = dto.ValorUnitario; almox.EstoqueMinimo = dto.EstoqueMinimo;
+        
+            almox.Nome = dto.Nome;
+            almox.Descricao = dto.Descricao;
+            almox.Quantidade = dto.Quantidade;
+            almox.Unidade = dto.Unidade;
+            almox.ValorUnitario = dto.ValorUnitario;
+            almox.EstoqueMinimo = dto.EstoqueMinimo;
+            almox.Lote = dto.Lote;
+            almox.Validade = dto.Validade.HasValue
+                ? DateOnly.FromDateTime(dto.Validade.Value)
+                : null;
+
             _almoxRepository.Update(almox);
 
             // Atualiza Clínica
-            med.PrincipioAtivo = dto.PrincipioAtivo; med.Contraindicacoes = dto.Contraindicacoes;
+            med.PrincipioAtivo = dto.PrincipioAtivo;
+            med.Contraindicacoes = dto.Contraindicacoes;
+
             _medRepository.Update(med);
 
             await _medRepository.SaveChangesAsync();
+        
         }
 
         public async Task ExcluirAsync(int id)

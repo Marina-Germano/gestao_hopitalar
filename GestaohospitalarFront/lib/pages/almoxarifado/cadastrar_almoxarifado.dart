@@ -51,15 +51,10 @@ class _CadastrarAlmoxarifadoState extends State<CadastrarAlmoxarifado> {
         _validadeCtrl.text = "${_dataValidade!.day.toString().padLeft(2, '0')}/${_dataValidade!.month.toString().padLeft(2, '0')}/${_dataValidade!.year}";
       }
 
+      // Como os dados já foram carregados na tela anterior, apenas os preenchemos
       if (_categoriaSelecionada == 'MEDICAMENTO') {
-        widget.service.carregarDetalhesMedicamento(i).then((_) {
-          if (mounted) {
-            setState(() {
-              _principioAtivoCtrl.text = i.principioAtivo ?? '';
-              _contraindicacoesCtrl.text = i.contraindicacoes ?? '';
-            });
-          }
-        });
+        _principioAtivoCtrl.text = i.principioAtivo ?? '';
+        _contraindicacoesCtrl.text = i.contraindicacoes ?? '';
       }
     }
   }
@@ -260,6 +255,7 @@ class _CadastrarAlmoxarifadoState extends State<CadastrarAlmoxarifado> {
                       try {
                         final novoItem = Almoxarifado(
                           id: widget.itemEdicao?.id,
+                          idMedicamento: widget.itemEdicao?.idMedicamento,
                           nome: _nomeCtrl.text,
                           categoria: _categoriaSelecionada!, 
                           descricao: _descricaoCtrl.text,

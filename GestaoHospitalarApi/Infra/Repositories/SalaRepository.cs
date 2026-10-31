@@ -19,13 +19,20 @@ namespace GestaoHospitalarApi.Infra.Repositories
         }
 
         public async Task<IEnumerable<Sala>> ObterTodasComAlaAsync()
-        {
-            return await _context.Set<Sala>()
-                .Include(s => s.IdAlaNavigation)
-                .OrderBy(s => s.IdAlaNavigation.NomeAla)
-                .ThenBy(s => s.Nome)
-                .ToListAsync();
-        }
+{
+    var salas = await _context.Set<Sala>().ToListAsync();
+
+    Console.WriteLine($"TOTAL DE SALAS ENCONTRADAS: {salas.Count}");
+
+    foreach (var sala in salas)
+    {
+        Console.WriteLine(
+            $"ID: {sala.IdSala} | Nome: {sala.Nome} | Ala: {sala.IdAla}"
+        );
+    }
+
+    return salas;
+}
 
         public async Task<IEnumerable<Sala>> ObterSalasLivresAsync()
         {
