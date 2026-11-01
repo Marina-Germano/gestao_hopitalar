@@ -47,6 +47,16 @@ class _CadastrarConvenioState extends State<CadastrarConvenio> {
     super.dispose();
   }
 
+  // Função auxiliar segura para converter strings numéricas aceitando ponto ou vírgula como decimais
+  double? _parseValor(String texto) {
+    if (texto.isEmpty) return null;
+    String textoNormalizado = texto.trim();
+    if (textoNormalizado.contains(',')) {
+      textoNormalizado = textoNormalizado.replaceAll('.', '').replaceAll(',', '.');
+    }
+    return double.tryParse(textoNormalizado);
+  }
+
   // 🔴 Função para confirmar e excluir o convênio
   Future<void> _excluirConvenio() async {
     final confirmar = await showDialog<bool>(
@@ -69,7 +79,7 @@ class _CadastrarConvenioState extends State<CadastrarConvenio> {
 
     if (confirmar == true && widget.convenioEdicao != null) {
       try {
-        await widget.service.arquivarConvenio(widget.convenioEdicao!);
+        await widget.service.excluirConvenio(widget.convenioEdicao!);
 
         if (context.mounted) {
           Navigator.pop(context);
@@ -271,10 +281,8 @@ class _CadastrarConvenioState extends State<CadastrarConvenio> {
                               cobreInternacao: _cobreInternacao,
                               cobreExames: _cobreExames,
                               cobreCirurgia: _cobreCirurgia,
-                              limiteMedicamento:
-                                  double.tryParse(_limiteCtrl.text),
-                              percentualCobertura:
-                                  double.tryParse(_coberturaCtrl.text),
+                              limiteMedicamento: _parseValor(_limiteCtrl.text),
+                              percentualCobertura: _parseValor(_coberturaCtrl.text),
                             );
                             await widget.service.salvarConvenio(novoConvenio);
 

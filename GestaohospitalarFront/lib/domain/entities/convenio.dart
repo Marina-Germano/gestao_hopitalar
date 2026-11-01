@@ -1,8 +1,9 @@
-// lib/domain/entities/convenio.dart
 import 'entitie.dart';
 
 class Convenio extends Entitie {
-  final int? ativo; // ✅ Adicionado para suporte ao Soft Delete
+  @override
+  final int? id;
+  final int? ativo;
   final String? nomeConvenio;
   final String? tipoLeito;
   final bool cobreInternacao;
@@ -12,7 +13,7 @@ class Convenio extends Entitie {
   final double? percentualCobertura;
 
   Convenio({
-    super.id, // Corresponde ao id_convenio
+    this.id,
     this.ativo = 1,
     this.nomeConvenio,
     this.tipoLeito = 'COMUM',
@@ -37,33 +38,55 @@ class Convenio extends Entitie {
     );
   }
 
-  // ✅ Traduz de Dart para as colunas exatas do seu SQLite (Evita erro de CHECK)
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'id_convenio': id,
       'ativo': ativo ?? 1,
-      'nome_convenio': nomeConvenio,
-      'tipo_leito': tipoLeito,
-      'cobre_internacao': cobreInternacao ? 1 : 0, // ✅ Converte bool para int (0 ou 1)
-      'cobre_exames': cobreExames ? 1 : 0,         // ✅ Converte bool para int (0 ou 1)
-      'cobre_cirurgia': cobreCirurgia ? 1 : 0,     // ✅ Converte bool para int (0 ou 1)
-      'limite_medicamento': limiteMedicamento,
-      'percentual_cobertura': percentualCobertura,
+      'nomeConvenio': nomeConvenio,
+      'tipoLeito': tipoLeito,
+      // Convertendo booleano para int (1 ou 0) para o C# conseguir ler como System.Int32
+      'cobreInternacao': cobreInternacao ? 1 : 0,
+      'cobreExames': cobreExames ? 1 : 0,
+      'cobreCirurgia': cobreCirurgia ? 1 : 0,
+      'limiteMedicamento': limiteMedicamento,
+      'percentualCobertura': percentualCobertura,
     };
   }
 
-  // ✅ Traduz de SQLite para objetos Dart
-  factory Convenio.fromMap(Map<String, dynamic> map) {
+  factory Convenio.fromJson(Map<String, dynamic> json) {
+    // Função auxiliar robusta para converter tanto bool quanto int (0 ou 1)
+    bool parseBool(dynamic value) {
+      if (value == null) return true;
+      if (value is bool) return value;
+      if (value is int) return value == 1;
+      if (value is String) return value.toLowerCase() == 'true' || value == '1';
+      return true;
+    }
+
     return Convenio(
-      id: map['id_convenio'],
-      ativo: map['ativo'],
-      nomeConvenio: map['nome_convenio'],
-      tipoLeito: map['tipo_leito'],
-      cobreInternacao: map['cobre_internacao'] == 1, // ✅ Converte int para bool
-      cobreExames: map['cobre_exames'] == 1,         // ✅ Converte int para bool
-      cobreCirurgia: map['cobre_cirurgia'] == 1,     // ✅ Converte int para bool
-      limiteMedicamento: map['limite_medicamento'] != null ? (map['limite_medicamento'] as num).toDouble() : null,
-      percentualCobertura: map['percentual_cobertura'] != null ? (map['percentual_cobertura'] as num).toDouble() : null,
+      id: json['idConvenio'] != null 
+          ? int.tryParse(json['idConvenio'].toString()) 
+          : (json['id'] != null ? int.tryParse(json['id'].toString()) : null),
+      ativo: json['ativo'] != null ? int.tryParse(json['ativo'].toString()) : 1,
+      nomeConvenio: json['nomeConvenio']?.toString() ?? json['nome_convenio']?.toString(),
+      tipoLeito: json['tipoLeito']?.toString() ?? json['tipo_leito']?.toString() ?? 'COMUM',
+      cobreInternacao: parseBool(json['cobreInternacao'] ?? json['cobre_internacao']),
+      cobreExames: parseBool(json['cobreExames'] ?? json['cobre_exames']),
+      cobreCirurgia: parseBool(json['cobreCirurgia'] ?? json['cobre_cirurgia']),
+      limiteMedicamento: json['limiteMedicamento'] != null 
+          ? (json['limiteMedicamento'] as num).toDouble() 
+          : (json['limite_medicamento'] != null ? (json['limite_medicamento'] as num).toDouble() : null),
+      percentualCobertura: json['percentualCobertura'] != null 
+          ? (json['percentualCobertura'] as num).toDouble() 
+          : (json['percentual_cobertura'] != null ? (json['percentual_cobertura'] as num).toDouble() : null),
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Convenio && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

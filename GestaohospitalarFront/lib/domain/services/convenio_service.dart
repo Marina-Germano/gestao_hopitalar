@@ -1,49 +1,102 @@
 // lib/domain/services/convenio_service.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:http/http.dart' as http;
 import '../entities/convenio.dart';
-import '../repository/entitie_repository.dart';
-import '../../data/repositories/generic_repository_impl.dart';
+import '../../data/resources/api_response.dart';
 
 class ConvenioService extends ChangeNotifier {
-  late final EntitieRepository<Convenio> _repository;
   
+  static const String baseUrl = 'http://localhost:5111/api/Convenios';
+
   List<Convenio> _convenios = [];
   List<Convenio> get convenios => _convenios;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  ConvenioService(Database db) {
-    _repository = GenericRepositoryImpl<Convenio>(
-      db: db,
-      tableName: 'convenio',
-      fromMap: (map) => Convenio.fromMap(map),
-      toMap: (c) => c.toMap(),
-    );
-  }
-
+  // ==========================================
+  // GET: Carregar Convênios
+  // ==========================================
   Future<void> carregarConvenios() async {
     _isLoading = true;
     notifyListeners();
-    final todos = await _repository.findAll();
-    // Filtra apenas ativos
-    _convenios = todos.where((c) => c.ativo != 0).toList();
-    _isLoading = false;
-    notifyListeners();
-  }
 
-  Future<void> salvarConvenio(Convenio convenio) async {
-    if (convenio.id == null) {
-      await _repository.create(convenio);
-    } else {
-      await _repository.update(convenio);
+    try {
+      final response = await http.get(Uri.parse(baseUrl));
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final apiResponse = ApiResponse<List<Convenio>>.fromJson(
+          jsonResponse,
+          (dados) => (dados as List).map((item) => Convenio.fromJson(item)).toList(),
+        );
+
+        final todos = apiResponse.dados ?? [];
+        // Filtra apenas ativos
+        _convenios = todos.where((c) => c.ativo != 0).toList();
+      } else {
+        throw Exception('Erro ao carregar convênios. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint("Erro ao carregar convênios: $e");
+      throw Exception("Erro de conexão com o servidor: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    await carregarConvenios();
   }
 
-  Future<void> arquivarConvenio(Convenio convenio) async {
-    await _repository.update(convenio.copyWith(ativo: 0));
-    await carregarConvenios();
+  // ==========================================
+  // POST / PUT: Salvar Convênio (Novo ou Atualizar)
+  // ==========================================
+  Future<void> salvarConvenio(Convenio convenio) async {
+    try {
+      http.Response response;
+
+      if (convenio.id == null) {
+        response = await http.post(
+          Uri.parse(baseUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(convenio.toJson()),
+        );
+      } else {
+        response = await http.put(
+          Uri.parse('$baseUrl/${convenio.id}'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(convenio.toJson()),
+        );
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await carregarConvenios();
+      } else {
+        throw Exception('Erro ao salvar convênio. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint("Erro ao salvar convênio: $e");
+      rethrow;
+    }
+  }
+
+  // ==========================================
+  // DELETE: Excluir Convênio Definitivamente
+  // ==========================================
+  Future<void> excluirConvenio(Convenio convenio) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/${convenio.id}'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        await carregarConvenios();
+      } else {
+        throw Exception('Erro ao excluir convênio. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint("Erro ao excluir convênio: $e");
+      rethrow;
+    }
   }
 }

@@ -94,7 +94,7 @@ class _DashboardState extends State<Dashboard> {
     _medicoService = MedicoService();
     _medicoService.carregarMedicos();
 
-    _convenioService = ConvenioService(widget.database);
+    _convenioService = ConvenioService();
     _convenioService.carregarConvenios();
 
     _triagemService = TriagemService(widget.database);
