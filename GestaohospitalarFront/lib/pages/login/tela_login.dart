@@ -49,9 +49,47 @@ class _TelaLoginState extends State<TelaLogin> {
       return;
     }
 
-    // Mantém temporariamente o fluxo antigo do administrador.
-    if (tipoAcesso == 'ADMIN') {
-      if (senhaDigitada == '123456') {
+    setState(() => _carregando = true);
+
+    try {
+      // Administrador e médico são autenticados pela mesma API.
+      final resultado = await _authService.autenticar(
+        usuarioDigitado,
+        senhaDigitada,
+      );
+
+      if (!mounted) return;
+
+      if (resultado == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Usuário ou senha incorretos, ou usuário inativo.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Confere se o perfil retornado corresponde à opção escolhida.
+      if (resultado.perfil != tipoAcesso) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Este usuário possui perfil ${resultado.perfil}. '
+              'Selecione a opção correta.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // Guarda o token para utilização nos serviços da API.
+      AuthSession.iniciar(resultado);
+
+      if (resultado.perfil == 'ADMIN') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -60,28 +98,7 @@ class _TelaLoginState extends State<TelaLogin> {
             ),
           ),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Senha incorreta!'),
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() => _carregando = true);
-
-    try {
-      // Agora o CRM e a senha são validados pela API.
-      final token = await _authService.autenticarMedico(
-        usuarioDigitado,
-        senhaDigitada,
-      );
-
-      if (!mounted) return;
-
-      if (token != null) {
+      } else if (resultado.perfil == 'MEDICO') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -90,22 +107,17 @@ class _TelaLoginState extends State<TelaLogin> {
             ),
           ),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('CRM ou senha incorretos, ou usuário inativo.'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     } catch (e) {
       if (!mounted) return;
 
+      debugPrint('Erro no login: $e');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Não foi possível conectar à API. '
-            'Verifique se ela está em execução.',
+            'Não foi possível realizar o login. '
+            'Verifique a conexão com a API.',
           ),
           backgroundColor: Colors.red,
         ),
