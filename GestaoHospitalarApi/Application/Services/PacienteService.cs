@@ -1,6 +1,8 @@
+
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GestaoHospitalarApi.Application.Services
 {
@@ -9,15 +11,28 @@ namespace GestaoHospitalarApi.Application.Services
         private readonly IPacienteRepository _pacienteRepository;
         private readonly IGenericRepository<Convenio> _convenioRepository;
         private readonly IGenericRepository<PacienteConvenio> _pacienteConvenioRepository;
+        private readonly IMemoryCache _cache;
+
+        private const string CachePacientesAtivos = "pacientes_ativos";
+        private const string CachePacientesInativos = "pacientes_inativos";
 
         public PacienteService(
             IPacienteRepository pacienteRepository,
             IGenericRepository<Convenio> convenioRepository,
-            IGenericRepository<PacienteConvenio> pacienteConvenioRepository)
+            IGenericRepository<PacienteConvenio> pacienteConvenioRepository,
+            IMemoryCache cache)
         {
             _pacienteRepository = pacienteRepository;
             _convenioRepository = convenioRepository;
             _pacienteConvenioRepository = pacienteConvenioRepository;
+            _cache = cache;
+        }
+
+        // INVALIDAR CACHE DE PACIENTES
+        private void InvalidarCachePacientes()
+        {
+            _cache.Remove(CachePacientesAtivos);
+            _cache.Remove(CachePacientesInativos);
         }
 
         // CADASTRAR PACIENTE
@@ -57,6 +72,9 @@ namespace GestaoHospitalarApi.Application.Services
             {
                 await _pacienteRepository.AddAsync(paciente);
                 await _pacienteRepository.SaveChangesAsync();
+
+                // O paciente foi salvo. Limpa o cache.
+                InvalidarCachePacientes();
             }
             catch (Exception ex)
             {
@@ -102,63 +120,62 @@ namespace GestaoHospitalarApi.Application.Services
         }
 
         // BUSCAR PACIENTE PARA EDIÇÃO
-        
-    public async Task<PacienteCadastroDto?> ObterParaEdicaoAsync(int id)
-    {
-        var paciente = await _pacienteRepository.ObterComDetalhesAsync(id);
-
-        if (paciente == null)
-            return null;
-
-        var dto = new PacienteCadastroDto
+        public async Task<PacienteCadastroDto?> ObterParaEdicaoAsync(int id)
         {
-            Nome = paciente.IdPessoaNavigation.Nome,
-            Cpf = paciente.IdPessoaNavigation.Cpf,
-            Telefone = paciente.IdPessoaNavigation.Telefone,
-            DataNascimento = paciente.IdPessoaNavigation.Nascimento?
-                .ToDateTime(TimeOnly.MinValue) ?? DateTime.MinValue,
-            Sexo = paciente.IdPessoaNavigation.Sexo ?? "",
-            Cep = paciente.IdPessoaNavigation.Cep ?? "",
-            Rua = paciente.IdPessoaNavigation.Rua ?? string.Empty,
-            Numero = paciente.IdPessoaNavigation.NumeroCasa ?? string.Empty,
-            Bairro = paciente.IdPessoaNavigation.Bairro ?? string.Empty,
-            Cidade = paciente.IdPessoaNavigation.Cidade ?? string.Empty,
-            Estado = paciente.IdPessoaNavigation.Estado ?? string.Empty,
+            var paciente = await _pacienteRepository.ObterComDetalhesAsync(id);
 
-            Alergias = paciente.Alergias ?? "",
-            TipoSanguineo = paciente.TipoSanguineo ?? "",
-            HistoricoClinico = paciente.HistoricoClinico ?? "",
-            NomeResponsavel = paciente.NomeResponsavel ?? ""
-        };
+            if (paciente == null)
+                return null;
 
-        var pacienteConvenio = paciente.PacienteConvenios?.FirstOrDefault();
-        if (pacienteConvenio != null)
-{
-    Console.WriteLine("===== TESTE DO VÍNCULO =====");
-    Console.WriteLine($"ID do vínculo: {pacienteConvenio.IdPacienteConvenio}");
-    Console.WriteLine($"ID do paciente: {pacienteConvenio.IdPaciente}");
-    Console.WriteLine($"ID do convênio: {pacienteConvenio.IdConvenio}");
-    Console.WriteLine($"Nome do convênio: {pacienteConvenio.IdConvenioNavigation?.NomeConvenio}");
-    Console.WriteLine("============================");
-}
-
-        if (pacienteConvenio != null &&
-            pacienteConvenio.IdConvenioNavigation != null)
-        {
-            dto.Convenio = new PacienteConvenioCadastroDto
+            var dto = new PacienteCadastroDto
             {
-                IdPaciente = pacienteConvenio.IdPaciente,
-                IdConvenio = pacienteConvenio.IdConvenio,
-                NomeConvenio = pacienteConvenio.IdConvenioNavigation.NomeConvenio,
-                Numero = pacienteConvenio.NumeroCarteira ?? "",
-                Validade = pacienteConvenio.Validade.ToDateTime(TimeOnly.MinValue),
-                Ativo = 1
+                Nome = paciente.IdPessoaNavigation.Nome,
+                Cpf = paciente.IdPessoaNavigation.Cpf,
+                Telefone = paciente.IdPessoaNavigation.Telefone,
+                DataNascimento = paciente.IdPessoaNavigation.Nascimento?
+                    .ToDateTime(TimeOnly.MinValue) ?? DateTime.MinValue,
+                Sexo = paciente.IdPessoaNavigation.Sexo ?? "",
+                Cep = paciente.IdPessoaNavigation.Cep ?? "",
+                Rua = paciente.IdPessoaNavigation.Rua ?? string.Empty,
+                Numero = paciente.IdPessoaNavigation.NumeroCasa ?? string.Empty,
+                Bairro = paciente.IdPessoaNavigation.Bairro ?? string.Empty,
+                Cidade = paciente.IdPessoaNavigation.Cidade ?? string.Empty,
+                Estado = paciente.IdPessoaNavigation.Estado ?? string.Empty,
+
+                Alergias = paciente.Alergias ?? "",
+                TipoSanguineo = paciente.TipoSanguineo ?? "",
+                HistoricoClinico = paciente.HistoricoClinico ?? "",
+                NomeResponsavel = paciente.NomeResponsavel ?? ""
             };
+
+            var pacienteConvenio = paciente.PacienteConvenios?.FirstOrDefault();
+
+            if (pacienteConvenio != null)
+            {
+                Console.WriteLine("===== TESTE DO VÍNCULO =====");
+                Console.WriteLine($"ID do vínculo: {pacienteConvenio.IdPacienteConvenio}");
+                Console.WriteLine($"ID do paciente: {pacienteConvenio.IdPaciente}");
+                Console.WriteLine($"ID do convênio: {pacienteConvenio.IdConvenio}");
+                Console.WriteLine($"Nome do convênio: {pacienteConvenio.IdConvenioNavigation?.NomeConvenio}");
+                Console.WriteLine("============================");
+            }
+
+            if (pacienteConvenio != null &&
+                pacienteConvenio.IdConvenioNavigation != null)
+            {
+                dto.Convenio = new PacienteConvenioCadastroDto
+                {
+                    IdPaciente = pacienteConvenio.IdPaciente,
+                    IdConvenio = pacienteConvenio.IdConvenio,
+                    NomeConvenio = pacienteConvenio.IdConvenioNavigation.NomeConvenio,
+                    Numero = pacienteConvenio.NumeroCarteira ?? "",
+                    Validade = pacienteConvenio.Validade.ToDateTime(TimeOnly.MinValue),
+                    Ativo = 1
+                };
+            }
+
+            return dto;
         }
-
-        return dto;
-    }
-
 
         // ATUALIZAR PACIENTE
         public async Task AtualizarAsync(int id, PacienteCadastroDto dto)
@@ -237,32 +254,69 @@ namespace GestaoHospitalarApi.Application.Services
             }
 
             await _pacienteRepository.SaveChangesAsync();
+
+            // Limpa o cache após a atualização.
+            InvalidarCachePacientes();
         }
 
         // LISTAR PACIENTES ATIVOS
         public async Task<IEnumerable<PacienteListagemDto>> ObterTodosAtivosAsync()
         {
+            // Verifica se os dados já estão no cache.
+            if (_cache.TryGetValue(
+                CachePacientesAtivos,
+                out List<PacienteListagemDto>? pacientesCacheados))
+            {
+                return pacientesCacheados!;
+            }
+
+            // Se não estiverem, consulta o banco.
             var pacientes = await _pacienteRepository.ObterTodosComPessoaAsync(ativo: 1);
 
-            return pacientes.Select(p => new PacienteListagemDto
+            var resultado = pacientes.Select(p => new PacienteListagemDto
             {
                 Id = p.IdPaciente,
                 Nome = p.IdPessoaNavigation!.Nome,
                 Cpf = p.IdPessoaNavigation.Cpf
-            });
+            }).ToList();
+
+            // Armazena por 5 minutos.
+            _cache.Set(
+                CachePacientesAtivos,
+                resultado,
+                TimeSpan.FromMinutes(5));
+
+            return resultado;
         }
 
         // LISTAR PACIENTES INATIVOS
         public async Task<IEnumerable<PacienteListagemDto>> ObterTodosInativosAsync()
         {
+            // Verifica se os dados já estão no cache.
+            if (_cache.TryGetValue(
+                CachePacientesInativos,
+                out List<PacienteListagemDto>? pacientesCacheados))
+            {
+                return pacientesCacheados!;
+            }
+
+            // Se não estiverem, consulta o banco.
             var pacientes = await _pacienteRepository.ObterTodosComPessoaAsync(ativo: 0);
 
-            return pacientes.Select(p => new PacienteListagemDto
+            var resultado = pacientes.Select(p => new PacienteListagemDto
             {
                 Id = p.IdPaciente,
                 Nome = p.IdPessoaNavigation!.Nome,
                 Cpf = p.IdPessoaNavigation.Cpf
-            });
+            }).ToList();
+
+            // Armazena por 5 minutos.
+            _cache.Set(
+                CachePacientesInativos,
+                resultado,
+                TimeSpan.FromMinutes(5));
+
+            return resultado;
         }
 
         // ARQUIVAR PACIENTE
@@ -275,6 +329,8 @@ namespace GestaoHospitalarApi.Application.Services
                 paciente.Ativo = 0;
                 _pacienteRepository.Update(paciente);
                 await _pacienteRepository.SaveChangesAsync();
+
+                InvalidarCachePacientes();
             }
         }
 
@@ -288,61 +344,63 @@ namespace GestaoHospitalarApi.Application.Services
                 paciente.Ativo = 1;
                 _pacienteRepository.Update(paciente);
                 await _pacienteRepository.SaveChangesAsync();
+
+                InvalidarCachePacientes();
             }
         }
 
         // EXCLUIR PACIENTE
         public async Task ExcluirAsync(int id)
-{
-    // 1. OBRIGATÓRIO: Buscar com os detalhes (Includes) para trazer os convênios
-    var paciente = await _pacienteRepository.ObterComDetalhesAsync(id);
-
-    if (paciente == null)
-        throw new Exception("Paciente não encontrado.");
-
-    // 2. Proteger contra exclusão se houver histórico médico
-    if (paciente.Agendamentos != null && paciente.Agendamentos.Any())
-    {
-        throw new Exception("Não é possível excluir este paciente porque existem agendamentos vinculados. Utilize o arquivamento.");
-    }
-    if (paciente.Prontuarios != null && paciente.Prontuarios.Any())
-    {
-        throw new Exception("Não é possível excluir este paciente porque existem prontuários vinculados. Utilize o arquivamento.");
-    }
-    if (paciente.Triagems != null && paciente.Triagems.Any())
-    {
-        throw new Exception("Não é possível excluir este paciente porque existem triagens vinculadas. Utilize o arquivamento.");
-    }
-
-    try
-    {
-        // 3. Remover vínculos da tabela paciente_convenio PRIMEIRO
-        if (paciente.PacienteConvenios != null && paciente.PacienteConvenios.Any())
         {
-            foreach (var vinculo in paciente.PacienteConvenios.ToList())
+            // 1. Buscar com os detalhes (Includes) para trazer os convênios.
+            var paciente = await _pacienteRepository.ObterComDetalhesAsync(id);
+
+            if (paciente == null)
+                throw new Exception("Paciente não encontrado.");
+
+            // 2. Proteger contra exclusão se houver histórico médico.
+            if (paciente.Agendamentos != null && paciente.Agendamentos.Any())
             {
-                _pacienteConvenioRepository.Delete(vinculo);
+                throw new Exception("Não é possível excluir este paciente porque existem agendamentos vinculados. Utilize o arquivamento.");
             }
-            
-            // IMPORTANTE: Salvar a remoção do convênio no banco antes de apagar o paciente
-            await _pacienteConvenioRepository.SaveChangesAsync();
+
+            if (paciente.Prontuarios != null && paciente.Prontuarios.Any())
+            {
+                throw new Exception("Não é possível excluir este paciente porque existem prontuários vinculados. Utilize o arquivamento.");
+            }
+
+            if (paciente.Triagems != null && paciente.Triagems.Any())
+            {
+                throw new Exception("Não é possível excluir este paciente porque existem triagens vinculadas. Utilize o arquivamento.");
+            }
+
+            try
+            {
+                // 3. Remover vínculos da tabela paciente_convenio primeiro.
+                if (paciente.PacienteConvenios != null && paciente.PacienteConvenios.Any())
+                {
+                    foreach (var vinculo in paciente.PacienteConvenios.ToList())
+                    {
+                        _pacienteConvenioRepository.Delete(vinculo);
+                    }
+
+                    await _pacienteConvenioRepository.SaveChangesAsync();
+                }
+
+                // 4. Remover o registro principal.
+                _pacienteRepository.Delete(paciente);
+
+                // 5. Salvar a exclusão do paciente.
+                await _pacienteRepository.SaveChangesAsync();
+
+                // Limpa o cache após a exclusão bem-sucedida.
+                InvalidarCachePacientes();
+            }
+            catch (Exception ex)
+            {
+                var erroReal = ex.GetBaseException().Message;
+                throw new Exception($"Erro no banco ao excluir paciente: {erroReal}", ex);
+            }
         }
-
-        // 4. Remover o registro principal (o paciente)
-        _pacienteRepository.Delete(paciente);
-        
-        // Se quiser manter a base limpa, pode excluir a Pessoa também (opcional)
-        // var pessoa = paciente.IdPessoaNavigation;
-        // Se descomentar a linha acima, você precisaria injetar _pessoaRepository no construtor
-
-        // 5. Salvar a exclusão do paciente no banco
-        await _pacienteRepository.SaveChangesAsync();
-    }
-    catch (Exception ex)
-    {
-        var erroReal = ex.GetBaseException().Message;
-        throw new Exception($"Erro no banco ao excluir paciente: {erroReal}", ex);
-    }
-}
     }
 }

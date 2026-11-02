@@ -19,7 +19,7 @@ namespace GestaoHospitalarApi.Application.Services
             {
                 IdPaciente = dto.IdPaciente,
                 IdMedico = dto.IdMedico,
-                //IdSala = dto.IdSala,
+                IdSala = dto.IdSala ?? 0,
                 DataHora = dto.DataHora,
                 Status = "AGENDADO"
             };

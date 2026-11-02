@@ -227,17 +227,15 @@ Quando uma consulta é realizada:
 
 Nas operações que alteram os dados do paciente, o cache relacionado deve ser atualizado ou invalidado para evitar que informações antigas sejam retornadas.
 
-O cache é configurado na API por meio do serviço:
+Foram criadas duas chaves de cache independentes:
+
+pacientes_ativos: armazena a listagem de pacientes ativos.
+pacientes_inativos: armazena a listagem de pacientes inativos.
+
+O cache é utilizado no PacienteService, por meio da injeção de dependência de IMemoryCache.
+
+A configuração do serviço é realizada no Program.cs:
 builder.Services.AddMemoryCache();
-
-E utilizado no Controller por meio da injeção de:
-IMemoryCache
-
-O uso do cache busca:
-- reduzir consultas desnecessárias ao banco;
-- melhorar o tempo de resposta;
-- diminuir o processamento de consultas repetidas;
-- demonstrar a utilização de uma estratégia de cache na API.
 
 ---
 
