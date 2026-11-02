@@ -1,13 +1,14 @@
-// lib/domain/services/paciente_service.dart
+
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:http/http.dart' as http;
+
 import '../entities/paciente.dart';
-import '../repository/entitie_repository.dart';
-import '../../data/repositories/generic_repository_impl.dart';
+import '../../data/resources/api_response.dart';
 
 class PacienteService with ChangeNotifier {
-  final EntitieRepository<Paciente> _pacienteRepository;
-  final Database db; // ✅ Acesso direto ao banco para transações e queries customizadas
+  static const String baseUrl = 'http://localhost:5111/api/Paciente';
 
   List<Paciente> _pacientes = [];
   bool _isLoading = false;
@@ -15,171 +16,304 @@ class PacienteService with ChangeNotifier {
   List<Paciente> get pacientes => _pacientes;
   bool get isLoading => _isLoading;
 
-  PacienteService(this.db)
-      : _pacienteRepository = GenericRepositoryImpl<Paciente>(
-          db: db,
-          tableName: 'paciente',
-          fromMap: Paciente.fromMap,
-          toMap: (p) => p.toMap(),
-        );
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
 
-  /// Carrega os pacientes ATIVOS (ativo != 0)
+  /// Trata respostas de erro da API.
+  void _verificarResposta(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return;
+    }
+
+    String mensagem = 'Erro ao comunicar com a API.';
+
+    try {
+      final json = jsonDecode(response.body);
+      mensagem = json['mensagem'] ??
+          json['title'] ??
+          json['errors']?.toString() ??
+          mensagem;
+    } catch (_) {
+      if (response.body.isNotEmpty) {
+        mensagem = response.body;
+      }
+    }
+
+    throw Exception(mensagem);
+  }
+
+  /// Converte a resposta envelopada da API em uma lista de pacientes.
+  List<Paciente> _lerLista(
+    http.Response response, {
+    required int ativo,
+  }) {
+    _verificarResposta(response);
+
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+
+    final resultado = ApiResponse<List<Paciente>>.fromJson(
+      json,
+      (dados) => (dados as List)
+          .map(
+            (item) => Paciente.fromJson(
+              item as Map<String, dynamic>,
+              ativoOverride: ativo,
+            ),
+          )
+          .toList(),
+    );
+
+    if (!resultado.sucesso) {
+      throw Exception(
+        resultado.mensagem ?? 'Não foi possível carregar pacientes.',
+      );
+    }
+
+    return resultado.dados ?? [];
+  }
+
+  /// Carrega pacientes ativos.
   Future<void> carregarPacientes() async {
     _isLoading = true;
-    notifyListeners(); 
+    notifyListeners();
+
     try {
-      final todos = await _pacienteRepository.findAll();
-      _pacientes = todos.where((p) => p.ativo != 0).toList();
+      final response = await http.get(
+        Uri.parse('$baseUrl/ativos'),
+        headers: _headers,
+      );
+
+      _pacientes = _lerLista(response, ativo: 1);
     } catch (e) {
-      debugPrint("Erro ao buscar pacientes: $e");
+      debugPrint('Erro ao buscar pacientes: $e');
+      rethrow;
     } finally {
       _isLoading = false;
-      notifyListeners(); 
+      notifyListeners();
     }
   }
 
-  /// Retorna lista de pacientes ativos
+  /// Retorna pacientes ativos.
   Future<List<Paciente>> listarPacientes() async {
     await carregarPacientes();
     return _pacientes;
   }
 
-  /// Retorna a lista de pacientes ARQUIVADOS (ativo == 0) para a Tela de Arquivados
+  /// Retorna pacientes arquivados.
   Future<List<Paciente>> listarPacientesArquivados() async {
     try {
-      final todos = await _pacienteRepository.findAll();
-      return todos.where((p) => p.ativo == 0).toList();
+      final response = await http.get(
+        Uri.parse('$baseUrl/inativos'),
+        headers: _headers,
+      );
+
+      return _lerLista(response, ativo: 0);
     } catch (e) {
-      debugPrint("Erro ao buscar pacientes arquivados: $e");
-      return [];
+      debugPrint('Erro ao buscar pacientes arquivados: $e');
+      rethrow;
     }
   }
 
-  /// Busca os dados do convênio caso o paciente já esteja vinculado (para Edição)
-  Future<Map<String, dynamic>?> buscarVinculoConvenio(int idPaciente) async {
-    final result = await db.query(
-      'paciente_convenio',
-      where: 'id_paciente = ? AND ativo = 1',
-      whereArgs: [idPaciente],
-      limit: 1,
+  /// Retorna pacientes arquivados em formato Map para a TelaArquivo.
+  Future<List<Map<String, dynamic>>> listarPacientesArquivadosEmMap() async {
+    final pacientes = await listarPacientesArquivados();
+
+    return pacientes.map((paciente) {
+      return {
+        'id': paciente.id,
+        'nome': paciente.nome,
+        'cpf': paciente.cpf,
+      };
+    }).toList();
+  }
+
+  /// Busca os dados completos do paciente para edição.
+  /// Busca os dados completos do paciente para edição.
+Future<Paciente> buscarPorId(int id) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/$id'),
+    headers: _headers,
+  );
+
+  _verificarResposta(response);
+
+  final json = jsonDecode(response.body) as Map<String, dynamic>;
+
+  if (json['sucesso'] == false) {
+    throw Exception(json['mensagem'] ?? 'Paciente não encontrado.');
+  }
+
+  // A API utiliza o padrão { sucesso, mensagem, dados }.
+  // Também aceita uma resposta sem envelope, caso o controller retorne assim.
+  final dados = json['dados'] is Map<String, dynamic>
+      ? json['dados'] as Map<String, dynamic>
+      : json;
+
+  return Paciente.fromJson(
+    dados,
+    idOverride: id,
+  );
+}
+
+  /// Busca os dados do vínculo de convênio do paciente.
+  /// Busca os dados do vínculo de convênio do paciente.
+Future<Map<String, dynamic>?> buscarVinculoConvenio(
+  int idPaciente,
+) async {
+  final response = await http.get(
+    Uri.parse('$baseUrl/$idPaciente'),
+    headers: _headers,
+  );
+
+  _verificarResposta(response);
+
+  final json = jsonDecode(response.body) as Map<String, dynamic>;
+
+  if (json['sucesso'] == false) {
+    throw Exception(
+      json['mensagem'] ?? 'Não foi possível buscar o convênio.',
     );
-    if (result.isNotEmpty) return result.first;
-    return null;
   }
 
-  /// Salva ou atualiza paciente + convênio com transação
-  Future<void> salvarPaciente(Paciente paciente, {int? idConvenio, String? numeroCarteira, DateTime? validade}) async {
-    if (paciente.nome == null || paciente.nome!.isEmpty) {
-      throw Exception("O nome do paciente é obrigatório.");
+  // Extrai os dados de dentro do envelope da API.
+  final dados = json['dados'] is Map<String, dynamic>
+      ? json['dados'] as Map<String, dynamic>
+      : json;
+
+  final convenio = dados['convenio'];
+
+  if (convenio == null) return null;
+
+  return Map<String, dynamic>.from(convenio);
+}
+  /// Cadastra ou atualiza um paciente.
+  Future<void> salvarPaciente(
+    Paciente paciente, {
+    int? idConvenio,
+    String? nomeConvenio,
+    String? numeroCarteira,
+    DateTime? validade,
+  }) async {
+    if (paciente.nome.trim().isEmpty) {
+      throw Exception('O nome do paciente é obrigatório.');
     }
 
-    await db.transaction((txn) async {
-      int idPaciente;
+    if (paciente.nascimento == null) {
+      throw Exception('A data de nascimento do paciente é obrigatória.');
+    }
 
-      // 1. Salva ou atualiza os dados na tabela Paciente
-      if (paciente.id == null) {
-        idPaciente = await txn.insert('paciente', paciente.toMap());
-      } else {
-        idPaciente = paciente.id!;
-        await txn.update(
-          'paciente',
-          paciente.toMap(),
-          where: 'id_paciente = ?',
-          whereArgs: [idPaciente],
-        );
-      }
+    if (idConvenio != null &&
+        (nomeConvenio == null || nomeConvenio.trim().isEmpty)) {
+      throw Exception(
+        'A API precisa do nome do convênio para realizar o vínculo. '
+        'Envie nomeConvenio em vez de somente idConvenio.',
+      );
+    }
 
-      // 2. Se um convênio foi selecionado no formulário, cria/atualiza o vínculo
-      if (idConvenio != null) {
-        final vinculoMap = {
-          'id_paciente': idPaciente,
-          'id_convenio': idConvenio,
-          'numero_carteira': numeroCarteira,
-          'validade': validade != null 
-              ? "${validade.year}-${validade.month.toString().padLeft(2, '0')}-${validade.day.toString().padLeft(2, '0')}" 
-              : null,
-          'ativo': 1,
-        };
+    final body = paciente.toJson(
+      nomeConvenio: nomeConvenio,
+      numeroCarteira: numeroCarteira,
+      validade: validade,
+    );
 
-        final existing = await txn.query(
-          'paciente_convenio',
-          where: 'id_paciente = ? AND ativo = 1',
-          whereArgs: [idPaciente],
-        );
+    if (nomeConvenio != null && validade == null) {
+      throw Exception('Informe a validade da carteira do convênio.');
+    }
 
-        if (existing.isNotEmpty) {
-           await txn.update(
-             'paciente_convenio',
-             vinculoMap,
-             where: 'id_paciente = ?',
-             whereArgs: [idPaciente],
-           );
-        } else {
-           await txn.insert('paciente_convenio', vinculoMap);
-        }
-      } else {
-        // Se desmarcar o convênio, inativa o vínculo antigo
-        if (paciente.id != null) {
-          await txn.update(
-            'paciente_convenio',
-            {'ativo': 0},
-            where: 'id_paciente = ?',
-            whereArgs: [paciente.id],
+    final bool editando = paciente.id != null;
+
+    final response = editando
+        ? await http.put(
+            Uri.parse('$baseUrl/${paciente.id}'),
+            headers: _headers,
+            body: jsonEncode(body),
+          )
+        : await http.post(
+            Uri.parse('$baseUrl/cadastrar'),
+            headers: _headers,
+            body: jsonEncode(body),
           );
-        }
-      }
-    });
 
-    await carregarPacientes(); 
+    _verificarResposta(response);
+
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+
+    final resultado = ApiResponse<dynamic>.fromJson(
+      json,
+      (dados) => dados,
+    );
+
+    if (!resultado.sucesso) {
+      throw Exception(
+        resultado.mensagem ?? 'Não foi possível salvar o paciente.',
+      );
+    }
+
+    await carregarPacientes();
   }
 
-  /// Arquiva o paciente alterando 'ativo' para 0 diretamente na tabela
+  /// Arquiva um paciente pela API.
   Future<void> arquivarPaciente(Paciente paciente) async {
-    if (paciente.id == null) return;
+    if (paciente.id == null) {
+      throw Exception('Não foi possível identificar o paciente.');
+    }
 
     try {
-      await db.update(
-        'paciente',
-        {'ativo': 0},
-        where: 'id_paciente = ?',
-        whereArgs: [paciente.id],
+      final response = await http.patch(
+        Uri.parse('$baseUrl/${paciente.id}/arquivar'),
+        headers: _headers,
       );
+
+      _verificarResposta(response);
+
       await carregarPacientes();
     } catch (e) {
-      debugPrint("Erro ao arquivar paciente: $e");
+      debugPrint('Erro ao arquivar paciente: $e');
       rethrow;
     }
   }
 
-  /// Restaura o paciente arquivado alterando 'ativo' para 1
+  /// Restaura um paciente arquivado pela API.
+  Future<void> restaurarPacientePorId(int id) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/$id/ativar'),
+        headers: _headers,
+      );
+
+      _verificarResposta(response);
+
+      await carregarPacientes();
+    } catch (e) {
+      debugPrint('Erro ao restaurar paciente: $e');
+      rethrow;
+    }
+  }
+
+  /// Restaura um paciente utilizando seu objeto.
   Future<void> restaurarPaciente(Paciente paciente) async {
-    if (paciente.id == null) return;
-
-    try {
-      await db.update(
-        'paciente',
-        {'ativo': 1},
-        where: 'id_paciente = ?',
-        whereArgs: [paciente.id],
-      );
-      await carregarPacientes();
-    } catch (e) {
-      debugPrint("Erro ao restaurar paciente: $e");
-      rethrow;
+    if (paciente.id == null) {
+      throw Exception('Não foi possível identificar o paciente.');
     }
+
+    await restaurarPacientePorId(paciente.id!);
   }
 
-  /// Exclui o paciente permanentemente do banco
+  /// Exclui permanentemente um paciente.
   Future<void> deletarPaciente(int id) async {
     try {
-      await db.delete(
-        'paciente',
-        where: 'id_paciente = ?',
-        whereArgs: [id],
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$id'),
+        headers: _headers,
       );
+
+      _verificarResposta(response);
+
       await carregarPacientes();
     } catch (e) {
-      debugPrint("Erro ao deletar paciente: $e");
+      debugPrint('Erro ao deletar paciente: $e');
       rethrow;
     }
   }

@@ -28,7 +28,7 @@ class _TelaAtendimentoMedicoState extends State<TelaAtendimentoMedico> {
   @override
   void initState() {
     super.initState();
-    _pacienteService = PacienteService(widget.database);
+    _pacienteService = PacienteService();
     _carregarPacientesDoBanco();
   }
 

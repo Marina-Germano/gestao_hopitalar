@@ -2,8 +2,8 @@
 import 'entitie.dart';
 
 class Paciente extends Entitie {
-  final int? ativo; // 1 para Ativo, 0 para Arquivado
-  final String nome; // 🟢 Obrigatório (não é mais String?)
+  final int? ativo;
+  final String nome;
   final String? cpf;
   final String? sexo;
   final DateTime? nascimento;
@@ -21,8 +21,8 @@ class Paciente extends Entitie {
 
   Paciente({
     super.id,
-    this.ativo = 1, // Por padrão, todo paciente nasce ativo
-    required this.nome, // 🟢 required garante que o nome não seja nulo
+    this.ativo = 1,
+    required this.nome,
     this.cpf,
     this.sexo,
     this.nascimento,
@@ -39,7 +39,6 @@ class Paciente extends Entitie {
     this.nomeResponsavel,
   });
 
-  // Método copyWith atualizado
   Paciente copyWith({
     int? id,
     int? ativo,
@@ -80,6 +79,82 @@ class Paciente extends Entitie {
     );
   }
 
+  /// Converte o paciente para o formato esperado pela API.
+  Map<String, dynamic> toJson({
+    String? nomeConvenio,
+    String? numeroCarteira,
+    DateTime? validade,
+  }) {
+    return {
+      'nome': nome,
+      'cpf': cpf ?? '',
+      'telefone': telefone,
+      'dataNascimento': nascimento?.toIso8601String(),
+      'sexo': sexo ?? '',
+      'cep': cep ?? '',
+      'rua': rua ?? '',
+      'numero': numeroCasa?.toString() ?? '',
+      'bairro': bairro ?? '',
+      'cidade': cidade ?? '',
+      'estado': estado ?? '',
+      'alergias': alergias,
+      'tipoSanguineo': tipoSanguineo,
+      'historicoClinico': historicoClinico,
+      'nomeResponsavel': nomeResponsavel,
+      'convenio': (nomeConvenio != null &&
+              nomeConvenio.trim().isNotEmpty)
+          ? {
+              'nomeConvenio': nomeConvenio,
+              'numero': numeroCarteira ?? '',
+              'validade': validade?.toIso8601String(),
+            }
+          : null,
+    };
+  }
+
+  /// Converte os dados recebidos da API em Paciente.
+  factory Paciente.fromJson(
+    Map<String, dynamic> json, {
+    int? idOverride,
+    int? ativoOverride,
+  }) {
+    final nascimentoJson =
+        json['dataNascimento'] ?? json['nascimento'];
+
+    return Paciente(
+      id: idOverride ??
+          _toInt(json['id'] ?? json['idPaciente'] ?? json['id_paciente']),
+      ativo: ativoOverride ?? _toInt(json['ativo']) ?? 1,
+      nome: json['nome']?.toString() ?? '',
+      cpf: json['cpf']?.toString(),
+      sexo: json['sexo']?.toString(),
+      nascimento: nascimentoJson != null
+          ? DateTime.tryParse(nascimentoJson.toString())
+          : null,
+      alergias: json['alergias']?.toString(),
+      tipoSanguineo:
+          (json['tipoSanguineo'] ?? json['tipo_sanguineo'])?.toString(),
+      historicoClinico:
+          (json['historicoClinico'] ?? json['historico_clinico'])?.toString(),
+      telefone: json['telefone']?.toString(),
+      rua: json['rua']?.toString(),
+      numeroCasa: _toInt(json['numero'] ?? json['numeroCasa'] ?? json['numero_casa']),
+      bairro: json['bairro']?.toString(),
+      cidade: json['cidade']?.toString(),
+      estado: json['estado']?.toString(),
+      cep: json['cep']?.toString(),
+      nomeResponsavel:
+          (json['nomeResponsavel'] ?? json['nome_responsavel'])?.toString(),
+    );
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
+  }
+
+  // Mantidos temporariamente para compatibilidade com partes antigas do app.
   Map<String, dynamic> toMap() {
     return {
       'id_paciente': id,
@@ -87,9 +162,7 @@ class Paciente extends Entitie {
       'nome': nome,
       'cpf': cpf,
       'sexo': sexo,
-      'nascimento': nascimento != null 
-          ? "${nascimento!.year}-${nascimento!.month.toString().padLeft(2, '0')}-${nascimento!.day.toString().padLeft(2, '0')}" 
-          : null,
+      'nascimento': nascimento?.toIso8601String(),
       'alergias': alergias,
       'tipo_sanguineo': tipoSanguineo,
       'historico_clinico': historicoClinico,
@@ -105,24 +178,6 @@ class Paciente extends Entitie {
   }
 
   factory Paciente.fromMap(Map<String, dynamic> map) {
-    return Paciente(
-      id: map['id_paciente'],
-      ativo: map['ativo'],
-      nome: map['nome'] ?? '', // 🟢 Trata nulo como String vazia ao ler do banco
-      cpf: map['cpf'],
-      sexo: map['sexo'],
-      nascimento: map['nascimento'] != null ? DateTime.tryParse(map['nascimento']) : null,
-      alergias: map['alergias'],
-      tipoSanguineo: map['tipo_sanguineo'],
-      historicoClinico: map['historico_clinico'],
-      telefone: map['telefone'],
-      rua: map['rua'],
-      numeroCasa: map['numero_casa'],
-      bairro: map['bairro'],
-      cidade: map['cidade'],
-      estado: map['estado'],
-      cep: map['cep'],
-      nomeResponsavel: map['nome_responsavel'],
-    );
+    return Paciente.fromJson(map);
   }
 }

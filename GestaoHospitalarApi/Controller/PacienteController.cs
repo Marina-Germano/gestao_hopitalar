@@ -1,3 +1,4 @@
+
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Application.Services;
 using GestaoHospitalarApi.Application.Wrappers;
@@ -23,7 +24,8 @@ namespace GestaoHospitalarApi.Controllers
             try
             {
                 await _pacienteService.CadastrarAsync(dto);
-                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente cadastrado com sucesso!"));
+                return Ok(ResultWrapper<object>.Ok(
+                    new object(), "Paciente cadastrado com sucesso!"));
             }
             catch (Exception ex)
             {
@@ -36,7 +38,8 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> ObterAtivos()
         {
             var pacientes = await _pacienteService.ObterTodosAtivosAsync();
-            return Ok(ResultWrapper<IEnumerable<PacienteListagemDto>>.Ok(pacientes));
+
+            return Ok(ResultWrapper<object>.Ok(pacientes));
         }
 
         // GET: api/paciente/inativos
@@ -44,28 +47,33 @@ namespace GestaoHospitalarApi.Controllers
         public async Task<IActionResult> ObterInativos()
         {
             var pacientes = await _pacienteService.ObterTodosInativosAsync();
-            return Ok(ResultWrapper<IEnumerable<PacienteListagemDto>>.Ok(pacientes));
+
+            return Ok(ResultWrapper<object>.Ok(pacientes));
         }
 
-        // GET: api/paciente/5 (Para carregar o formulário de edição)
+        // GET: api/paciente/5
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPorId(int id)
         {
             var paciente = await _pacienteService.ObterParaEdicaoAsync(id);
+
             if (paciente == null)
                 return NotFound(ResultWrapper<object>.Erro("Paciente não encontrado."));
 
-            return Ok(paciente);
+            return Ok(ResultWrapper<PacienteCadastroDto>.Ok(paciente));
         }
 
         // PUT: api/paciente/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> Atualizar(int id, [FromBody] PacienteCadastroDto dto)
+        public async Task<IActionResult> Atualizar(
+            int id, [FromBody] PacienteCadastroDto dto)
         {
             try
             {
                 await _pacienteService.AtualizarAsync(id, dto);
-                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente atualizado com sucesso!"));
+
+                return Ok(ResultWrapper<object>.Ok(
+                    new object(), "Paciente atualizado com sucesso!"));
             }
             catch (Exception ex)
             {
@@ -80,7 +88,26 @@ namespace GestaoHospitalarApi.Controllers
             try
             {
                 await _pacienteService.ArquivarAsync(id);
-                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente arquivado com sucesso!"));
+
+                return Ok(ResultWrapper<object>.Ok(
+                    new object(), "Paciente arquivado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
+
+        // PATCH: api/paciente/5/ativar
+        [HttpPatch("{id}/ativar")]
+        public async Task<IActionResult> Ativar(int id)
+        {
+            try
+            {
+                await _pacienteService.AtivarAsync(id);
+
+                return Ok(ResultWrapper<object>.Ok(
+                    new object(), "Paciente reativado com sucesso!"));
             }
             catch (Exception ex)
             {
@@ -95,7 +122,9 @@ namespace GestaoHospitalarApi.Controllers
             try
             {
                 await _pacienteService.ExcluirAsync(id);
-                return Ok(ResultWrapper<object>.Ok(new object(), "Paciente excluído com sucesso!"));
+
+                return Ok(ResultWrapper<object>.Ok(
+                    new object(), "Paciente excluído com sucesso!"));
             }
             catch (Exception ex)
             {

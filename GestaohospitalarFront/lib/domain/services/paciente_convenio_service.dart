@@ -1,35 +1,131 @@
-// lib/domain/services/paciente_convenio_service.dart
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:http/http.dart' as http;
+
 import '../entities/paciente_convenio.dart';
-import '../../data/repositories/generic_repository_impl.dart';
-import '../repository/entitie_repository.dart';
+import '../../data/resources/api_response.dart';
 
 class PacienteConvenioService extends ChangeNotifier {
-  late final EntitieRepository<PacienteConvenio> _repository;
+  static const String baseUrl =
+      'http://localhost:5111/api/PacienteConvenio';
 
-  PacienteConvenioService(Database db) {
-    _repository = GenericRepositoryImpl<PacienteConvenio>(
-      db: db,
-      tableName: 'paciente_convenio',
-      fromMap: (map) => PacienteConvenio.fromMap(map),
-      toMap: (pc) => pc.toMap(),
-    );
-  }
+  List<PacienteConvenio> _vinculos = [];
 
+  List<PacienteConvenio> get vinculos => _vinculos;
+
+  // Vincular convênio ao paciente
   Future<void> vincularConvenio(PacienteConvenio vinculo) async {
-    // Se já existir um registro para esse paciente, poderíamos dar update, 
-    // mas por enquanto vamos criar o registro de vínculo
-    await _repository.create(vinculo);
-    notifyListeners();
-  }
-  
-  // Método para buscar convênio do paciente na tela de edição
-  Future<PacienteConvenio?> buscarPorPaciente(int idPaciente) async {
-    final todos = await _repository.findAll();
-    return todos.cast<PacienteConvenio?>().firstWhere(
-      (pc) => pc!.idPaciente == idPaciente && pc.ativo == true,
-      orElse: () => null,
+    final url = Uri.parse('$baseUrl/cadastrar');
+
+    final body = {
+      'idPaciente': vinculo.idPaciente,
+      'idConvenio': vinculo.idConvenio,
+      'numeroCarteira': vinculo.numeroCarteira,
+      'validade': vinculo.validade.toIso8601String().split('T').first,
+    };
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(body),
     );
+
+    final json = jsonDecode(response.body);
+
+    final resultado = ApiResponse<dynamic>.fromJson(
+      json,
+      (dados) => dados,
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300 &&
+        resultado.sucesso) {
+      await buscarPorPaciente(vinculo.idPaciente);
+      notifyListeners();
+    } else {
+      throw Exception(
+        resultado.mensagem ?? 'Erro ao vincular convênio ao paciente.',
+      );
+    }
+  }
+
+  // Buscar convênios vinculados a um paciente
+  Future<PacienteConvenio?> buscarPorPaciente(int idPaciente) async {
+    final url = Uri.parse('$baseUrl/paciente/$idPaciente');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Accept': 'application/json',
+      },
+    );
+
+    final json = jsonDecode(response.body);
+
+    final resultado = ApiResponse<List<PacienteConvenio>>.fromJson(
+      json,
+      (dados) => (dados as List)
+          .map(
+            (item) => PacienteConvenio.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300 &&
+        resultado.sucesso) {
+      _vinculos = resultado.dados ?? [];
+
+      notifyListeners();
+
+      // Retorna somente um vínculo ativo, se existir
+      for (final vinculo in _vinculos) {
+        if (vinculo.ativo) {
+          return vinculo;
+        }
+      }
+
+      return null;
+    }
+
+    throw Exception(
+      resultado.mensagem ?? 'Erro ao buscar convênio do paciente.',
+    );
+  }
+
+  // Inativar vínculo com o convênio
+  Future<void> inativarConvenio(int idVinculo) async {
+    final url = Uri.parse('$baseUrl/$idVinculo/inativar');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Accept': 'application/json',
+      },
+    );
+
+    final json = jsonDecode(response.body);
+
+    final resultado = ApiResponse<dynamic>.fromJson(
+      json,
+      (dados) => dados,
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300 &&
+        resultado.sucesso) {
+      _vinculos.removeWhere((v) => v.id == idVinculo);
+      notifyListeners();
+    } else {
+      throw Exception(
+        resultado.mensagem ?? 'Erro ao inativar vínculo do convênio.',
+      );
+    }
   }
 }
