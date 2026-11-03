@@ -71,6 +71,8 @@ builder.Services.AddScoped<IInternacaoRepository, InternacaoRepository>();
 builder.Services.AddScoped<IPacienteConvenioRepository, PacienteConvenioRepository>();
 builder.Services.AddScoped<IFaturamentoRepository, FaturamentoRepository>();
 builder.Services.AddScoped<IAlmoxarifadoRepository, AlmoxarifadoRepository>();
+builder.Services.AddScoped<AgendamentoRepository, AgendamentoRepository>();
+builder.Services.AddScoped<IEscalaMedicaRepository, EscalaMedicaRepository>();
 
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IConvenioService, ConvenioService>();
@@ -91,6 +93,8 @@ builder.Services.AddScoped<IInternacaoService, InternacaoService>();
 builder.Services.AddScoped<IPacienteConvenioService, PacienteConvenioService>();
 builder.Services.AddScoped<IFaturamentoService, FaturamentoService>();
 builder.Services.AddScoped<IAlmoxarifadoService, AlmoxarifadoService>();
+builder.Services.AddScoped<AgendamentoService, AgendamentoService>();
+builder.Services.AddScoped<IEscalaMedicaService, EscalaMedicaService>();
 builder.Services.AddScoped<JwtService, JwtService>();
 
 
