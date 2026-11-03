@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../../domain/entities/medico.dart';
 import '../../../domain/services/medico_service.dart';
+import '../../../domain/services/especialidade_service.dart';
 
 class CadastrarMedico extends StatefulWidget {
   final MedicoService service;
@@ -47,6 +48,11 @@ class _CadastrarMedicoState extends State<CadastrarMedico> {
   bool _carregandoDadosEdicao = false;
   bool _salvando = false;
   bool _falhaCarregamentoDadosEdicao = false;
+  bool _carregandoEspecialidades = false;
+  bool _salvandoEspecialidade = false;
+
+  final EspecialidadeService _especialidadeService =
+      EspecialidadeService();
 
   final List<String> _sexos = [
     'MASCULINO',
@@ -79,6 +85,8 @@ class _CadastrarMedicoState extends State<CadastrarMedico> {
   @override
   void initState() {
     super.initState();
+
+    _carregarEspecialidades();
 
     final medico = widget.medicoEdicao;
 
@@ -205,6 +213,176 @@ class _CadastrarMedicoState extends State<CadastrarMedico> {
         .replaceAll('Õ', 'O')
         .replaceAll('Ú', 'U')
         .replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+
+  // Busca as especialidades cadastradas na API sem remover as opções atuais.
+  Future<void> _carregarEspecialidades() async {
+    if (!mounted) return;
+
+    setState(() {
+      _carregandoEspecialidades = true;
+    });
+
+    try {
+      final especialidades =
+          await _especialidadeService.listarEspecialidades();
+
+      if (!mounted) return;
+
+      setState(() {
+        for (final especialidade in especialidades) {
+          final descricao =
+              especialidade.descricaoEspecialidade?.trim() ?? '';
+
+          if (descricao.isNotEmpty &&
+              !_especialidadesDisponiveis.any(
+                (item) => _normalizar(item) == _normalizar(descricao),
+              )) {
+            _especialidadesDisponiveis.add(descricao);
+          }
+        }
+
+        // Preserva a especialidade recebida ao editar um médico.
+        final selecionada = _especialidadeSelecionada;
+        if (selecionada != null &&
+            !_especialidadesDisponiveis.any(
+              (item) => _normalizar(item) == _normalizar(selecionada),
+            )) {
+          _especialidadesDisponiveis.add(selecionada);
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar especialidades: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _carregandoEspecialidades = false;
+        });
+      }
+    }
+  }
+
+  // Abre a janela + cadastra na API + seleciona a nova especialidade.
+  Future<void> _adicionarEspecialidade() async {
+    final controller = TextEditingController();
+
+    final descricao = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text(
+          'NOVA ESPECIALIDADE',
+          style: TextStyle(
+            color: Colors.teal,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.characters,
+          decoration: const InputDecoration(
+            labelText: 'Nome da especialidade',
+            hintText: 'Ex.: ENDOCRINOLOGIA',
+            prefixIcon: Icon(Icons.local_hospital),
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (valor) {
+            final texto = valor.trim();
+            if (texto.isNotEmpty) {
+              Navigator.pop(dialogContext, texto.toUpperCase());
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('CANCELAR'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final texto = controller.text.trim();
+              if (texto.isEmpty) return;
+              Navigator.pop(dialogContext, texto.toUpperCase());
+            },
+            icon: const Icon(Icons.save),
+            label: const Text('SALVAR'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+
+    if (!mounted || descricao == null || descricao.trim().isEmpty) {
+      return;
+    }
+
+    final existente = _especialidadesDisponiveis.where(
+      (item) => _normalizar(item) == _normalizar(descricao),
+    );
+
+    if (existente.isNotEmpty) {
+      setState(() {
+        _especialidadeSelecionada = existente.first;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Essa especialidade já está na lista.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _salvandoEspecialidade = true;
+    });
+
+    try {
+      await _especialidadeService.cadastrarEspecialidade(descricao);
+
+      if (!mounted) return;
+
+      setState(() {
+        _especialidadesDisponiveis.add(descricao);
+        _especialidadeSelecionada = descricao;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Especialidade cadastrada com sucesso!'),
+          backgroundColor: Colors.teal,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao cadastrar especialidade: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _salvandoEspecialidade = false;
+        });
+      }
+    }
   }
 
   String _formatarData(dynamic valor) {
@@ -736,34 +914,61 @@ class _CadastrarMedicoState extends State<CadastrarMedico> {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            key: ValueKey(
-                              'especialidade-$_especialidadeSelecionada',
-                            ),
-                            initialValue: _especialidadeSelecionada,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'ESPECIALIDADE',
-                              prefixIcon: Icon(Icons.local_hospital),
-                              border: OutlineInputBorder(),
-                            ),
-                            items: _especialidadesDisponiveis
-                                .map(
-                                  (esp) => DropdownMenuItem<String>(
-                                    value: esp,
-                                    child: Text(
-                                      esp,
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  key: ValueKey(
+                                    'especialidade-$_especialidadeSelecionada',
+                                  ),
+                                  initialValue: _especialidadeSelecionada,
+                                  isExpanded: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'ESPECIALIDADE',
+                                    prefixIcon: Icon(Icons.local_hospital),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: _especialidadesDisponiveis
+                                      .map(
+                                        (esp) => DropdownMenuItem<String>(
+                                          value: esp,
+                                          child: Text(
+                                            esp,
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _especialidadeSelecionada = v;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              SizedBox(
+                                height: 55,
+                                width: 48,
+                                child: IconButton(
+                                  tooltip: 'Adicionar especialidade',
+                                  onPressed: (_salvando ||
+                                          _salvandoEspecialidade ||
+                                          _carregandoEspecialidades)
+                                      ? null
+                                      : _adicionarEspecialidade,
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.teal,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
                                   ),
-                                )
-                                .toList(),
-                            onChanged: (v) {
-                              setState(() {
-                                _especialidadeSelecionada = v;
-                              });
-                            },
+                                  icon: const Icon(Icons.add),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
