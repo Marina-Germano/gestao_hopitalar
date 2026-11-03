@@ -4,7 +4,7 @@ namespace GestaoHospitalarApi.Application.Services
 {
     public interface ITriagemService
     {
-        Task CadastrarAsync(TriagemCadastroDto dto, string loginUsuarioLogado);
+        Task<int> CadastrarAsync(TriagemCadastroDto dto, string loginUsuarioLogado);
         Task<TriagemCadastroDto?> ObterParaEdicaoAsync(int id);
         Task AtualizarAsync(int id, TriagemCadastroDto dto);
         Task<IEnumerable<TriagemListagemDto>> ObterTodasAsync();

@@ -5,6 +5,7 @@ namespace GestaoHospitalarApi.Application.DTOs
         public int IdTriagem { get; set; }
         
         // --- Dados do Paciente ---
+        public int IdPaciente { get; set; }
         public string NomePaciente { get; set; } = string.Empty;
         public string CpfPaciente { get; set; } = string.Empty;
         public DateTime DataNascimento { get; set; }

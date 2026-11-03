@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/paciente.dart';
+import '../../domain/services/prontuario_service.dart'; // Ajuste o caminho conforme a estrutura do seu projeto
 
 DateTime _dataEntrada = DateTime.now();
 
@@ -96,32 +97,29 @@ class _ProntuarioFormState extends State<ProntuarioForm> {
 
   void _salvarProntuario() async {
     try {
-      // 1. Converter a data para formato compatível com SQLite (String ISO8601)
-      String dataIso = _dataEntrada.toIso8601String();
+      // 🟢 TRATAMENTO SEGURO DO ID
+      final idRaw = widget.triagem['idTriagem'] ?? widget.triagem['id_triagem'] ?? widget.triagem['IdTriagem'];
+      final int idTriagem = int.parse(idRaw.toString());
 
-      // 2. Preparar dados
-      final Map<String, dynamic> dadosProntuario = {
-        'id_paciente': widget.paciente.id,
-        'id_triagem': widget.triagem['id_triagem'],
-        'id_medico': 1, // FUTURO: Pegar do seu sistema de login
-        'risco_evasao': 'BAIXO', // Exemplo
-        'isolamento': 'NAO',     // Exemplo
+      final dto = {
+        'idPaciente': widget.paciente.id,
+        'idTriagem': idTriagem,
+        'idMedico': 1, // FUTURO: Pegar do seu sistema de login
+        'idSala': null, 
+        'riscoEvasao': 'BAIXO',
         'evolucao': _evolucaoCtrl.text,
-        'data_abertura': dataIso, // 🟢 AQUI ESTÁ A CORREÇÃO
-        'status_prontuario': 'ATIVO',
+        'statusProntuario': 'ATIVO'
       };
 
-      // 3. Inserir no banco
-      await widget.database.insert('prontuario', dadosProntuario);
+      await ProntuarioService().cadastrarProntuario(dto);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Prontuário salvo!"), backgroundColor: Colors.green),
+          const SnackBar(content: Text("Prontuário salvo via API!"), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      // Log do erro completo para debug
       debugPrint("ERRO AO SALVAR: $e"); 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Erro ao salvar prontuário: $e"), backgroundColor: Colors.red),

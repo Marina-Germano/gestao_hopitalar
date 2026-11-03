@@ -9,6 +9,7 @@ import '../../domain/entities/ala.dart';
 import '../../domain/entities/paciente.dart';
 import '../../domain/services/medico_service.dart';
 import '../../domain/entities/medico.dart';
+import '../../domain/services/prontuario_service.dart'; // Ajuste o caminho conforme a estrutura do seu projeto
 // Ajuste os '..' conforme a pasta
 
 class EncaminhamentoForm extends StatefulWidget {
@@ -233,31 +234,29 @@ class _EncaminhamentoFormState extends State<EncaminhamentoForm> {
       return;
     }
 
+    // 🟢 TRATAMENTO SEGURO: Busca todas as variações possíveis de chave do JSON
+    final idRaw = widget.triagem['idTriagem'] ?? widget.triagem['id_triagem'] ?? widget.triagem['IdTriagem'];
+    
+    if (idRaw == null || idRaw.toString() == '0') {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Erro: ID da Triagem não identificado no App."),
+          backgroundColor: Colors.red));
+      return;
+    }
+    
+    final int idTriagem = int.parse(idRaw.toString());
+
     try {
-      int idProntuario = await widget.database.insert('prontuario', {
-        'id_paciente': widget.paciente.id,
-        'id_triagem': widget.triagem['id_triagem'],
-        'id_medico': _idMedicoSelecionado,
-        'id_sala': _tipoDestino == 'SALA' ? _idDestinoSelecionado : null,
-        'risco_evasao': _riscoEvasao, // Valor agora garantido
-        'isolamento': _isolamento, // Valor agora garantido
-        'data_abertura': DateTime.now().toIso8601String(),
-        'status_prontuario': 'ATIVO',
-      });
+      final dto = {
+        "riscoEvasao": _riscoEvasao,
+        "precisaIsolamento": _isolamento == 'SIM',
+        "idMedicoResponsavel": _idMedicoSelecionado,
+        "tipoDestino": _tipoDestino,
+        "idSala": _tipoDestino == 'SALA' ? _idDestinoSelecionado : null,
+        "idLeito": _tipoDestino == 'LEITO' ? _idDestinoSelecionado : null,
+      };
 
-      if (_tipoDestino == 'LEITO') {
-        await widget.database.insert('internacao', {
-          'id_prontuario': idProntuario,
-          'id_leito': _idDestinoSelecionado,
-          'data_entrada': DateTime.now().toIso8601String(),
-        });
-        await widget.database.rawUpdate(
-            'UPDATE leito SET situacao = ? WHERE id_leito = ?',
-            ['OCUPADO', _idDestinoSelecionado]);
-      }
-
-      await widget.database.update('triagem', {'internacao': 'SIM'},
-          where: 'id_triagem = ?', whereArgs: [widget.triagem['id_triagem']]);
+      await ProntuarioService().encaminharTriagem(idTriagem, dto);
 
       if (mounted) {
         Navigator.pop(context, true);

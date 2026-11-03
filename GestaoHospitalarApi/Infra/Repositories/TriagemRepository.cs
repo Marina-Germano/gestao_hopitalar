@@ -21,11 +21,10 @@ namespace GestaoHospitalarApi.Infra.Repositories
 
         public async Task<IEnumerable<Triagem>> ObterTodasComDetalhesAsync()
         {
-            // Triagens geralmente são ordenadas da mais recente para a mais antiga
             return await _context.Set<Triagem>()
                 .Include(t => t.IdPacienteNavigation)
                     .ThenInclude(p => p.IdPessoaNavigation)
-                //.OrderByDescending(t => t.DataTriagem)
+                .Where(t => t.Internacao == "NAO" || t.Internacao == null) // 🟢 Filtra apenas quem ainda não foi encaminhado
                 .ToListAsync();
         }
     }

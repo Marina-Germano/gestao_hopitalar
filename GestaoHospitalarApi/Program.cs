@@ -73,6 +73,8 @@ builder.Services.AddScoped<IFaturamentoRepository, FaturamentoRepository>();
 builder.Services.AddScoped<IAlmoxarifadoRepository, AlmoxarifadoRepository>();
 builder.Services.AddScoped<AgendamentoRepository, AgendamentoRepository>();
 builder.Services.AddScoped<IEscalaMedicaRepository, EscalaMedicaRepository>();
+builder.Services.AddScoped<IProntuarioRepository, ProntuarioRepository>();
+builder.Services.AddScoped<ITriagemRepository, TriagemRepository>();
 
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IConvenioService, ConvenioService>();
@@ -95,6 +97,8 @@ builder.Services.AddScoped<IFaturamentoService, FaturamentoService>();
 builder.Services.AddScoped<IAlmoxarifadoService, AlmoxarifadoService>();
 builder.Services.AddScoped<AgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IEscalaMedicaService, EscalaMedicaService>();
+builder.Services.AddScoped<IProntuarioService, ProntuarioService>();
+builder.Services.AddScoped<ITriagemService, TriagemService>();
 builder.Services.AddScoped<JwtService, JwtService>();
 
 
