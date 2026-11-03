@@ -1,7 +1,6 @@
 using GestaoHospitalarApi.Application.DTOs;
-using GestaoHospitalarApi.Domain.Repositories;
+using GestaoHospitalarApi.Application.Services;
 using GestaoHospitalarApi.Application.Wrappers;
-using GestaoHospitalarApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GestaoHospitalarApi.Controllers
@@ -10,90 +9,70 @@ namespace GestaoHospitalarApi.Controllers
     [Route("api/[controller]")]
     public class AlmoxarifadoController : ControllerBase
     {
-        private readonly IGenericRepository<Almoxarifado> _repository;
+        private readonly IAlmoxarifadoService _almoxarifadoService;
 
-        public AlmoxarifadoController(IGenericRepository<Almoxarifado> repository)
+        public AlmoxarifadoController(IAlmoxarifadoService almoxarifadoService)
         {
-            _repository = repository;
+            _almoxarifadoService = almoxarifadoService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> ObterTodos()
         {
-            var itens = await _repository.GetAllAsync();
-            return Ok(ResultWrapper<IEnumerable<Almoxarifado>>.Ok(itens, "Itens do almoxarifado recuperados com sucesso."));
+            var itens = await _almoxarifadoService.ObterTodosAsync();
+            return Ok(ResultWrapper<IEnumerable<AlmoxarifadoListagemDto>>.Ok(itens));
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> ObterPorId(int id)
         {
-            var item = await _repository.GetByIdAsync(id);
+            var item = await _almoxarifadoService.ObterPorIdAsync(id);
             if (item == null)
-                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item do almoxarifado não encontrado."));
+                return NotFound(ResultWrapper<object>.Erro("Item não encontrado."));
 
-            return Ok(ResultWrapper<Almoxarifado>.Ok(item, "Item do almoxarifado recuperado com sucesso."));
+            return Ok(ResultWrapper<AlmoxarifadoListagemDto>.Ok(item));
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] AlmoxarifadoCadastroDto dto)
+        [HttpPost("cadastrar")]
+        public async Task<IActionResult> Cadastrar([FromBody] AlmoxarifadoCadastroDto dto)
         {
-            var item = new Almoxarifado
+            try
             {
-                Nome = dto.Nome,
-                Categoria = dto.Categoria.ToUpper(),
-                Descricao = dto.Descricao,
-                Quantidade = dto.Quantidade,
-                Unidade = dto.Unidade,
-                ValorUnitario = dto.ValorUnitario,
-                EstoqueMinimo = dto.EstoqueMinimo ?? 0,
-                Lote = dto.Lote,
-                Validade = dto.Validade.HasValue
-                    ? DateOnly.FromDateTime(dto.Validade.Value)
-                    : null
-            };
-
-            await _repository.AddAsync(item);
-            await _repository.SaveChangesAsync();
-
-            return StatusCode(201, ResultWrapper<Almoxarifado>.Ok(item, "Item cadastrado no almoxarifado com sucesso"));
+                await _almoxarifadoService.CadastrarAsync(dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Item cadastrado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] AlmoxarifadoCadastroDto dto)
+        public async Task<IActionResult> Atualizar(int id, [FromBody] AlmoxarifadoCadastroDto dto)
         {
-            var item = await _repository.GetByIdAsync(id);
-            if (item == null)
-                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item não encontrado."));
-
-            item.Nome = dto.Nome;
-            item.Categoria = dto.Categoria.ToUpper();
-            item.Descricao = dto.Descricao;
-            item.Quantidade = dto.Quantidade;
-            item.Unidade = dto.Unidade;
-            item.ValorUnitario = dto.ValorUnitario;
-            item.EstoqueMinimo = dto.EstoqueMinimo ?? 0;
-            item.Lote = dto.Lote;
-            item.Validade = dto.Validade.HasValue
-                ? DateOnly.FromDateTime(dto.Validade.Value)
-                : null;
-
-            _repository.Update(item);
-            await _repository.SaveChangesAsync();
-
-            return Ok(ResultWrapper<Almoxarifado>.Ok(item, "Item do almoxarifado atualizado com sucesso."));
+            try
+            {
+                await _almoxarifadoService.AtualizarAsync(id, dto);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Item atualizado com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Excluir(int id)
         {
-            var item = await _repository.GetByIdAsync(id);
-            if (item == null)
-                return NotFound(ResultWrapper<Almoxarifado>.Erro("Item não encontrado."));
-
-            _repository.Delete(item);
-            await _repository.SaveChangesAsync();
-
-            return Ok(ResultWrapper<string>.Ok(string.Empty, "Item do almoxarifado removido com sucesso."));
+            try
+            {
+                await _almoxarifadoService.ExcluirAsync(id);
+                return Ok(ResultWrapper<object>.Ok(new object(), "Item excluído com sucesso!"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
         }
     }
 }

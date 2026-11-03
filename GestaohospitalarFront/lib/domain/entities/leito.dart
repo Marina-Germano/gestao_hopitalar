@@ -1,43 +1,49 @@
 class Leito {
   final int? id;
   final String? numero;
-  final int? idAla; 
+  final int? idAla;
+  final String? nomeAla;
   final DateTime? dataHigienizacao;
   final String? situacao;
-  final String? tipo; // 🟢 Adicionado aqui
+  final String? tipo;
 
   Leito({
     this.id,
     this.numero,
-    this.idAla, 
+    this.idAla,
+    this.nomeAla,
     this.dataHigienizacao,
     this.situacao,
-    this.tipo, // 🟢 Adicionado aqui no construtor
+    this.tipo,
   });
 
   Map<String, dynamic> toMap() {
     return {
-      'id_leito': id,
+      if (id != null) 'idLeito': id,
       'numero': numero,
-      'id_ala': idAla, 
-      'data_higienizacao': dataHigienizacao?.toIso8601String(),
-      'situacao': situacao,
-      'tipo': tipo, // 🟢 Adicionado para salvar no banco/mapa
+      'idAla': idAla,
+      'tipo': tipo ?? 'COMUM',
+      'situacao': situacao ?? 'VAGO',
     };
   }
 
-  factory Leito.fromMap(Map<String, dynamic> map) {
+  factory Leito.fromJson(Map<String, dynamic> json) {
     return Leito(
-      id: map['id_leito'],
-      numero: map['numero'],
-      idAla: map['id_ala'] != null ? int.tryParse(map['id_ala'].toString()) : null, 
-      dataHigienizacao: map['data_higienizacao'] != null
-          ? DateTime.parse(map['data_higienizacao'])
-          : null,
-      situacao: map['situacao'],
-      tipo: map['tipo'], // 🟢 Adicionado para ler do banco/mapa
+      id: json['idLeito'] ?? json['id_leito'] ?? json['id'],
+      numero: json['numero']?.toString() ?? json['numeroLeito']?.toString(),
+      idAla: json['idAla'] ?? json['id_ala'],
+      nomeAla: json['nomeAla'] ?? json['nome_ala'] ?? json['ala'] ?? json['nomeAlaNavigation'],
+      situacao: json['situacao'] ?? json['situacaoLeito'] ?? json['status_leito'] ?? json['status'] ?? 'VAGO',
+      tipo: json['tipo'] ?? json['tipoLeito'] ?? json['tipo_leito'] ?? 'COMUM',
+      dataHigienizacao: json['dataHigienizacao'] != null
+          ? DateTime.tryParse(json['dataHigienizacao'].toString())
+          : (json['data_higienizacao'] != null
+              ? DateTime.tryParse(json['data_higienizacao'].toString())
+              : null),
     );
   }
+
+  factory Leito.fromMap(Map<String, dynamic> map) => Leito.fromJson(map);
 
   @override
   bool operator ==(Object other) {

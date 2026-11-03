@@ -18,6 +18,7 @@ namespace GestaoHospitalarApi.Application.Services
             var sala = new Sala
             {
                 Nome = dto.Nome,
+                Tipo = dto.Tipo,
                 IdAla = dto.IdAla,
                 Status = "LIVRE" // Toda sala nova nasce livre
             };
@@ -32,6 +33,7 @@ namespace GestaoHospitalarApi.Application.Services
             if (sala == null) throw new Exception("Sala não encontrada.");
 
             sala.Nome = dto.Nome;
+            sala.Tipo = dto.Tipo;
             sala.IdAla = dto.IdAla;
 
             _salaRepository.Update(sala);
@@ -58,6 +60,7 @@ namespace GestaoHospitalarApi.Application.Services
             return new SalaCadastroDto
             {
                 Nome = sala.Nome ?? "",
+                Tipo = sala.Tipo ?? "",
                 IdAla = sala.IdAla
             };
         }
@@ -82,6 +85,7 @@ namespace GestaoHospitalarApi.Application.Services
             {
                 IdSala = s.IdSala,
                 Nome = s.Nome ?? "",
+                Tipo = s.Tipo ?? "",
                 Status = s.Status ?? "LIVRE",
                 IdAla = s.IdAla,
                 NomeAla = s.IdAlaNavigation?.NomeAla ?? "",

@@ -16,9 +16,13 @@ namespace GestaoHospitalarApi.Infra.Repositories
         public async Task<Paciente?> ObterComDetalhesAsync(int id)
         {
             return await _context.Set<Paciente>()
+                .AsSplitQuery()
                 .Include(p => p.IdPessoaNavigation)
                 .Include(p => p.PacienteConvenios)
                     .ThenInclude(pc => pc.IdConvenioNavigation)
+                .Include(p => p.Agendamentos)
+                .Include(p => p.Prontuarios)
+                .Include(p => p.Triagems)
                 .FirstOrDefaultAsync(p => p.IdPaciente == id);
         }
 

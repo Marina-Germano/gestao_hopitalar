@@ -300,13 +300,21 @@ class _ListarAlmoxarifadoState extends State<ListarAlmoxarifado> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // 🔵 Botão Editar
+                              // 🔵 Botão Editar (ALTERAÇÃO AQUI)
                               IconButton(
                                 icon: const Icon(Icons.edit, color: Colors.blue),
                                 tooltip: "Editar Item",
-                                onPressed: () => _abrirFormularioCadastro(
-                                  itemParaEditar: item,
-                                ),
+                                onPressed: () async {
+                                  // Verifica se é medicamento e carrega os dados antes de abrir a tela
+                                  if (item.categoria?.toUpperCase() == 'MEDICAMENTO') {
+                                    await widget.service.carregarDetalhesMedicamento(item);
+                                  }
+                                  
+                                  // Abre o formulário após a atualização do item
+                                  _abrirFormularioCadastro(
+                                    itemParaEditar: item,
+                                  );
+                                },
                               ),
                               // 🔴 Botão Excluir
                               IconButton(

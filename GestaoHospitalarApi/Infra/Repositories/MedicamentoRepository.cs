@@ -15,5 +15,11 @@ namespace GestaoHospitalarApi.Infra.Repositories
                 .OrderBy(m => m.IdAlmoxarifadoNavigation.Nome)
                 .ToListAsync();
         }
+
+        public async Task<Medicamento?> ObterPorAlmoxarifadoIdAsync(int idAlmoxarifado)
+        {
+            return await _context.Set<Medicamento>()
+                .FirstOrDefaultAsync(m => m.IdAlmoxarifado == idAlmoxarifado);
+        }
     }
 }

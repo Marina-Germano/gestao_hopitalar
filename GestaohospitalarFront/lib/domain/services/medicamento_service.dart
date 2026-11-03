@@ -1,28 +1,58 @@
-import '../../data/resources/database_provider.dart';
 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import '../../data/resources/api_response.dart';
 class MedicamentoService {
-  
-  // Busca todos os medicamentos que estão cadastrados no hospital
+  static const String baseUrlMedicamento =
+      'http://localhost:5111/api/Medicamento';
+
+  static const String baseUrlPrescricao =
+      'http://localhost:5111/api/Prescricao';
+
+  // Busca todos os medicamentos cadastrados na API.
   Future<List<Map<String, dynamic>>> listarMedicamentosCatalogo() async {
     try {
-      final db = await DatabaseProvider.instance.database;
-      
-      // Faz o INNER JOIN para pegar o nome que está no Almoxarifado 
-      // junto com o princípio ativo que está na tabela Medicamento
-      final List<Map<String, dynamic>> result = await db.rawQuery('''
-        SELECT m.id_medicamento, a.nome, m.principio_ativo 
-        FROM medicamento m
-        INNER JOIN almoxarifado a ON m.id_almoxarifado = a.id_almoxarifado
-        ORDER BY a.nome
-      ''');
-      
-      return result.map((item) => Map<String, dynamic>.from(item)).toList();
+      final response = await http.get(
+        Uri.parse(baseUrlMedicamento),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+
+        final resultado = ApiResponse<List<dynamic>>.fromJson(
+          json,
+          (dados) => dados as List<dynamic>,
+        );
+
+        if (!resultado.sucesso) {
+          throw Exception(
+            resultado.mensagem ?? 'Erro ao buscar medicamentos.',
+          );
+        }
+
+        return (resultado.dados ?? []).map((item) {
+          final medicamento = item as Map<String, dynamic>;
+
+          return {
+            'id_medicamento': medicamento['idMedicamento'],
+            'id_almoxarifado': medicamento['idAlmoxarifado'],
+            'nome': medicamento['nome'],
+            'principio_ativo': medicamento['principioAtivo'],
+            'contraindicacoes': medicamento['contraindicacoes'],
+          };
+        }).toList();
+      } else {
+        throw Exception(
+          'Erro HTTP ${response.statusCode}: ${response.body}',
+        );
+      }
     } catch (e) {
-      throw Exception("Erro ao buscar catálogo de medicamentos: $e");
+      throw Exception('Erro ao buscar catálogo de medicamentos: $e');
     }
   }
 
-  // Grava a prescrição feita pelo médico na tabela do banco de dados
+  // Grava a prescrição através da API.
   Future<void> prescreverMedicamento({
     required int idProntuario,
     required int idMedicamento,
@@ -30,43 +60,95 @@ class MedicamentoService {
     required String dosagem,
     required String viaAplicacao,
     required String frequencia,
-    String? observacao, // 🟢 Adicionado como opcional (pode ser nulo)
+    String? observacao,
   }) async {
     try {
-      final db = await DatabaseProvider.instance.database;
-      
-      await db.insert('prescricao', {
-        'id_prontuario': idProntuario,
-        'id_medicamento': idMedicamento,
-        'id_medico': idMedico,
-        'dosagem': dosagem,
-        'aplicacao': viaAplicacao, 
-        'horario': frequencia,
-        'observacao': observacao, // 🟢 Gravando a observação no banco
-      });
+      final response = await http.post(
+        Uri.parse('$baseUrlPrescricao/cadastrar'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'idProntuario': idProntuario,
+          'idMedicamento': idMedicamento,
+          'idMedico': idMedico,
+          'dosagem': dosagem,
+          'aplicacao': viaAplicacao,
+          'horario': frequencia,
+          'observacao': observacao,
+        }),
+      );
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201) {
+        final json = jsonDecode(response.body);
+
+        final resultado = ApiResponse<dynamic>.fromJson(
+          json,
+          (dados) => dados,
+        );
+
+        if (!resultado.sucesso) {
+          throw Exception(
+            resultado.mensagem ?? 'Erro ao salvar prescrição.',
+          );
+        }
+      } else {
+        throw Exception(
+          'Erro HTTP ${response.statusCode}: ${response.body}',
+        );
+      }
     } catch (e) {
-      throw Exception("Erro ao salvar a prescrição no banco: $e");
+      throw Exception('Erro ao salvar a prescrição: $e');
     }
   }
 
-
-  Future<List<Map<String, dynamic>>> listarPrescricoesPorProntuario(int idProntuario) async {
+  // Busca as prescrições de um prontuário através da API.
+  Future<List<Map<String, dynamic>>> listarPrescricoesPorProntuario(
+    int idProntuario,
+  ) async {
     try {
-      final db = await DatabaseProvider.instance.database;
-      
-      // Busca os dados da prescrição juntando com o nome do almoxarifado
-      final List<Map<String, dynamic>> result = await db.rawQuery('''
-        SELECT p.id_prescricao, p.dosagem, p.aplicacao, p.horario, p.observacao, a.nome AS nome_medicamento
-        FROM prescricao p
-        INNER JOIN medicamento m ON p.id_medicamento = m.id_medicamento
-        INNER JOIN almoxarifado a ON m.id_almoxarifado = a.id_almoxarifado
-        WHERE p.id_prontuario = ?
-        ORDER BY p.id_prescricao DESC
-      ''', [idProntuario]);
-      
-      return result.map((item) => Map<String, dynamic>.from(item)).toList();
+      final response = await http.get(
+        Uri.parse('$baseUrlPrescricao/prontuario/$idProntuario'),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+
+        final resultado = ApiResponse<List<dynamic>>.fromJson(
+          json,
+          (dados) => dados as List<dynamic>,
+        );
+
+        if (!resultado.sucesso) {
+          throw Exception(
+            resultado.mensagem ?? 'Erro ao buscar prescrições.',
+          );
+        }
+
+        return (resultado.dados ?? []).map((item) {
+          final prescricao = item as Map<String, dynamic>;
+
+          return {
+            'id_prescricao': prescricao['idPrescricao'],
+            'id_prontuario': prescricao['idProntuario'],
+            'id_medicamento': prescricao['idMedicamento'],
+            'id_medico': prescricao['idMedico'],
+            'dosagem': prescricao['dosagem'],
+            'aplicacao': prescricao['aplicacao'],
+            'horario': prescricao['horario'],
+            'observacao': prescricao['observacao'],
+            'nome_medicamento': prescricao['nomeMedicamento'],
+            'nome_medico': prescricao['nomeMedico'],
+          };
+        }).toList();
+      } else {
+        throw Exception(
+          'Erro HTTP ${response.statusCode}: ${response.body}',
+        );
+      }
     } catch (e) {
-      throw Exception("Erro ao buscar histórico de prescrições: $e");
+      throw Exception('Erro ao buscar histórico de prescrições: $e');
     }
   }
 }

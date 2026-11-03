@@ -1,83 +1,124 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../data/resources/database_provider.dart';
+import 'package:http/http.dart' as http;
 import '../entities/exame.dart';
+import '../../data/resources/api_response.dart';
+
+typedef JsonMap = Map<String, dynamic>;
 
 class ExameService extends ChangeNotifier {
+  // Ajustado para plural exato conforme o Swagger
+  static const String baseUrl = 'http://localhost:5111/api/Exames';
+
   List<Exame> exames = [];
   bool isLoading = false;
 
-  // --- MÉTODOS DE CATÁLOGO DE EXAMES ---
-
+  // ==========================================
+  // GET: Obter todos os Exames (Listagem)
+  // ==========================================
   Future<void> carregarExames() async {
     isLoading = true;
     notifyListeners();
 
     try {
-      final db = await DatabaseProvider.instance.database;
-      final result = await db.query('exame', orderBy: 'nome');
-      exames = result.map((e) => Exame.fromMap(e)).toList();
+      final response = await http.get(Uri.parse(baseUrl));
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final apiResponse = ApiResponse<List<Exame>>.fromJson(
+          jsonResponse,
+          (dados) => (dados as List).map((item) => Exame.fromJson(item)).toList(),
+        );
+
+        exames = apiResponse.dados ?? [];
+      } else {
+        throw Exception('Erro ao carregar exames da API. Status: ${response.statusCode}');
+      }
     } catch (e) {
-      throw Exception("Erro ao buscar exames do banco: $e");
+      throw Exception('Erro de conexão com o servidor: $e');
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
+  // ==========================================
+  // POST / PUT: Salvar Exame (Novo ou Atualizar)
+  // ==========================================
   Future<void> salvarExame(Exame exame) async {
     try {
-      final db = await DatabaseProvider.instance.database;
+      http.Response response;
 
       if (exame.id == null) {
-        final idInserido = await db.insert('exame', exame.toMap());
-        exame.id = idInserido;
-        exames.add(exame); 
-      } else {
-        await db.update(
-          'exame', 
-          exame.toMap(), 
-          where: 'id_exame = ?', 
-          whereArgs: [exame.id]
+        // POST /api/Exames (Sem o /cadastrar)
+        response = await http.post(
+          Uri.parse(baseUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(exame.toJson()),
         );
-        final index = exames.indexWhere((e) => e.id == exame.id);
-        if (index != -1) exames[index] = exame;
+      } else {
+        // PUT /api/Exames/{id}
+        response = await http.put(
+          Uri.parse('$baseUrl/${exame.id}'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(exame.toJson()),
+        );
       }
-      notifyListeners();
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await carregarExames();
+      } else {
+        throw Exception('Erro ao salvar exame. Status: ${response.statusCode}');
+      }
     } catch (e) {
-      throw Exception("Erro ao salvar exame: $e");
+      throw Exception('Erro ao salvar exame: $e');
     }
   }
 
+  // ==========================================
+  // DELETE: Excluir Exame
+  // ==========================================
   Future<void> arquivarExame(Exame exame) async {
     try {
-      final db = await DatabaseProvider.instance.database;
-      await db.delete('exame', where: 'id_exame = ?', whereArgs: [exame.id]);
-      exames.removeWhere((e) => e.id == exame.id); 
-      notifyListeners();
+      // DELETE /api/Exames/{id}
+      final response = await http.delete(Uri.parse('$baseUrl/${exame.id}'));
+
+      if (response.statusCode == 200) {
+        exames.removeWhere((e) => e.id == exame.id);
+        notifyListeners();
+      } else {
+        throw Exception('Erro ao excluir exame. Status: ${response.statusCode}');
+      }
     } catch (e) {
-      throw Exception("Erro ao excluir exame: $e");
+      throw Exception('Erro ao excluir exame: $e');
     }
   }
 
-  // --- MÉTODOS DE SOLICITAÇÃO ---
+  // ==========================================
+  // MÉTODOS DE SOLICITAÇÃO
+  // ==========================================
 
-  // --- MÉTODOS DE SOLICITAÇÃO ---
-
-  Future<List<Map<String, dynamic>>> buscarExamesPorProntuario(int idProntuario) async {
+  Future<List<JsonMap>> buscarExamesPorProntuario(int idProntuario) async {
     try {
-      final db = await DatabaseProvider.instance.database;
-      // CORREÇÃO: Alterado de se.status para se.status_exame
-      // Usamos "AS status" para não quebrar a sua interface (UI) caso ela espere essa chave
-      final result = await db.rawQuery('''
-        SELECT se.id_exame, e.nome, se.status_exame AS status 
-        FROM solicitacao_exame se 
-        JOIN exame e ON se.id_exame = e.id_exame 
-        WHERE se.id_prontuario = ?
-      ''', [idProntuario]);
-      
-      return result.map((item) => Map<String, dynamic>.from(item)).toList();
+      final response = await http.get(
+        Uri.parse('http://localhost:5111/api/SolicitacaoExame/prontuario/$idProntuario'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final apiResponse = ApiResponse<List<dynamic>>.fromJson(
+          jsonResponse,
+          (dados) => dados as List<dynamic>,
+        );
+
+        return (apiResponse.dados ?? [])
+            .map((item) => JsonMap.from(item))
+            .toList();
+      } else {
+        throw Exception('Erro ao buscar histórico de exames. Status: ${response.statusCode}');
+      }
     } catch (e) {
-      throw Exception("Erro ao buscar histórico de exames: $e");
+      throw Exception('Erro ao buscar histórico de exames: $e');
     }
   }
 
@@ -87,19 +128,24 @@ class ExameService extends ChangeNotifier {
     required int idMedico,
   }) async {
     try {
-      final db = await DatabaseProvider.instance.database;
-      
-      // CORREÇÃO: O nome da coluna no banco é 'status_exame' e não 'status'
-      await db.insert('solicitacao_exame', {
-        'id_prontuario': idProntuario,
-        'id_exame': idExame,
-        'id_medico': idMedico, 
-        'status_exame': 'SOLICITADO', 
-      });
-      // ADICIONE ESTA LINHA:
-      notifyListeners(); // <--- Isso é o que faz a tela atualizar e mostrar o exame na lista!
+      final response = await http.post(
+        Uri.parse('http://localhost:5111/api/SolicitacaoExame'), // Ajustado caso precise também
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'idProntuario': idProntuario,
+          'idExame': idExame,
+          'idMedico': idMedico,
+          'statusExame': 'SOLICITADO',
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        notifyListeners();
+      } else {
+        throw Exception('Erro ao solicitar exame. Status: ${response.statusCode}');
+      }
     } catch (e) {
-      throw Exception("Erro ao salvar solicitação de exame: $e");
+      throw Exception('Erro ao salvar solicitação de exame: $e');
     }
   }
 }

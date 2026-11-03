@@ -1,16 +1,18 @@
-// lib/pages/login/tela_login.dart
+
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../dashboard.dart';
 import '../dashboard_medico.dart';
-
 import '../../domain/services/auth_service.dart';
 
 class TelaLogin extends StatefulWidget {
   final Database database;
 
-  const TelaLogin({super.key, required this.database});
+  const TelaLogin({
+    super.key,
+    required this.database,
+  });
 
   @override
   State<TelaLogin> createState() => _TelaLoginState();
@@ -20,7 +22,10 @@ class _TelaLoginState extends State<TelaLogin> {
   final user = TextEditingController();
   final pass = TextEditingController();
 
-  String tipoAcesso = "MEDICO";
+  final AuthService _authService = AuthService();
+
+  String tipoAcesso = 'MEDICO';
+  bool _carregando = false;
 
   @override
   void dispose() {
@@ -29,48 +34,98 @@ class _TelaLoginState extends State<TelaLogin> {
     super.dispose();
   }
 
-  void _login() async {
+  Future<void> _login() async {
+    if (_carregando) return;
+
     final usuarioDigitado = user.text.trim();
-    final senhaDigitada = pass.text.trim();
+    final senhaDigitada = pass.text;
 
-    if (usuarioDigitado.isEmpty || senhaDigitada.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Preencha todos os campos!")));
-      return;
-    }
-
-    if (tipoAcesso == 'ADMIN') {
-      if (senhaDigitada == '123456') {
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => Dashboard(database: widget.database)));
-      } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Senha incorreta!")));
-      }
-      return;
-    }
-
-    // 🟢 USO DO NOVO SERVIÇO DE AUTENTICAÇÃO
-    final authService = AuthService(widget.database);
-    final medico =
-        await authService.autenticarMedico(usuarioDigitado, senhaDigitada);
-
-    if (medico != null) {
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (_) => DashboardMedico(database: widget.database)),
-      );
-    } else {
-      if (!mounted) return;
+    if (usuarioDigitado.isEmpty || senhaDigitada.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("CRM ou senha incorretos!"),
-            backgroundColor: Colors.red),
+          content: Text('Preencha todos os campos!'),
+        ),
       );
+      return;
+    }
+
+    setState(() => _carregando = true);
+
+    try {
+      // Administrador e médico são autenticados pela mesma API.
+      final resultado = await _authService.autenticar(
+        usuarioDigitado,
+        senhaDigitada,
+      );
+
+      if (!mounted) return;
+
+      if (resultado == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Usuário ou senha incorretos, ou usuário inativo.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Confere se o perfil retornado corresponde à opção escolhida.
+      if (resultado.perfil != tipoAcesso) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Este usuário possui perfil ${resultado.perfil}. '
+              'Selecione a opção correta.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // Guarda o token para utilização nos serviços da API.
+      AuthSession.iniciar(resultado);
+
+      if (resultado.perfil == 'ADMIN') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => Dashboard(
+              database: widget.database,
+            ),
+          ),
+        );
+      } else if (resultado.perfil == 'MEDICO') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DashboardMedico(
+              database: widget.database,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      debugPrint('Erro no login: $e');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível realizar o login. '
+            'Verifique a conexão com a API.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _carregando = false);
+      }
     }
   }
 
@@ -80,9 +135,7 @@ class _TelaLoginState extends State<TelaLogin> {
       body: Stack(
         children: [
           Positioned.fill(
-            child:
-                // ─── CAMADA 1: LOGO DE FUNDO ───
-                Container(
+            child: Container(
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: const AssetImage('assets/imagens/monge.jpeg'),
@@ -95,7 +148,6 @@ class _TelaLoginState extends State<TelaLogin> {
               ),
             ),
           ),
-          // ─── CAMADA 2: FORMULÁRIO DE LOGIN ───
           Center(
             child: SingleChildScrollView(
               child: SizedBox(
@@ -104,41 +156,54 @@ class _TelaLoginState extends State<TelaLogin> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      tipoAcesso == "ADMIN"
-                          ? "LOGIN ADMINISTRADOR"
-                          : "LOGIN MÉDICO",
+                      tipoAcesso == 'ADMIN'
+                          ? 'LOGIN ADMINISTRADOR'
+                          : 'LOGIN MÉDICO',
                       style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Radio<String>(
-                          value: "MEDICO",
+                          value: 'MEDICO',
                           groupValue: tipoAcesso,
-                          onChanged: (value) =>
-                              setState(() => tipoAcesso = value!),
+                          onChanged: _carregando
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setState(() => tipoAcesso = value);
+                                  }
+                                },
                         ),
-                        const Text("Médico"),
+                        const Text('Médico'),
                         const SizedBox(width: 20),
                         Radio<String>(
-                          value: "ADMIN",
+                          value: 'ADMIN',
                           groupValue: tipoAcesso,
-                          onChanged: (value) =>
-                              setState(() => tipoAcesso = value!),
+                          onChanged: _carregando
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setState(() => tipoAcesso = value);
+                                  }
+                                },
                         ),
-                        const Text("Administrador"),
+                        const Text('Administrador'),
                       ],
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: user,
-                      textInputAction: TextInputAction.next, // O Enter aqui pula para o próximo campo
+                      enabled: !_carregando,
+                      textInputAction: TextInputAction.next,
                       decoration: InputDecoration(
-                        labelText: tipoAcesso == "ADMIN" ? "Usuário" : "CRM",
+                        labelText:
+                            tipoAcesso == 'ADMIN' ? 'Usuário' : 'CRM',
                         border: const OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.8),
@@ -147,11 +212,12 @@ class _TelaLoginState extends State<TelaLogin> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: pass,
+                      enabled: !_carregando,
                       obscureText: true,
-                      textInputAction: TextInputAction.done, // Transforma o botão do teclado em "Concluído/Enter"
-                      onSubmitted: (_) => _login(), // Aciona o login ao apertar Enter
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _login(),
                       decoration: InputDecoration(
-                        labelText: "Senha",
+                        labelText: 'Senha',
                         border: const OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white.withValues(alpha: 0.8),
@@ -164,8 +230,17 @@ class _TelaLoginState extends State<TelaLogin> {
                         foregroundColor: Colors.white,
                         minimumSize: const Size(double.infinity, 45),
                       ),
-                      onPressed: _login,
-                      child: const Text("Entrar"),
+                      onPressed: _carregando ? null : _login,
+                      child: _carregando
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Entrar'),
                     ),
                   ],
                 ),

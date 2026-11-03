@@ -56,7 +56,7 @@ class _EncaminhamentoFormState extends State<EncaminhamentoForm> {
     _salaService = SalaService();
     _leitoService = LeitoService();
     _alaService = AlaService();
-    _medicoService = MedicoService(widget.database);
+    _medicoService = MedicoService();
     _carregarDados();
   }
 

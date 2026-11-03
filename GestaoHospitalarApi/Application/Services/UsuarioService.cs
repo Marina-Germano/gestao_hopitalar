@@ -67,36 +67,67 @@ namespace GestaoHospitalarApi.Application.Services
             };
         }
 
-        public async Task<string?> LoginAsync(UsuarioLoginDTO dto)
+        
+    public async Task<string?> LoginAsync(UsuarioLoginDTO dto)
+    {
+        var usuarios = await _usuarioRepository.FindAsync(
+            u => u.Login == dto.Login
+        );
+
+        var usuario = usuarios.FirstOrDefault();
+
+        if (usuario == null || usuario.Ativo != 1)
+            return null;
+
+        PasswordVerificationResult resultado;
+
+        try
         {
-            var usuarios = await _usuarioRepository.FindAsync(
-                u => u.Login == dto.Login
-            );
-
-            var usuario = usuarios.FirstOrDefault();
-
-            if (usuario == null)
-                return null;
-
-            var resultado = _passwordHasher.VerifyHashedPassword(
+            resultado = _passwordHasher.VerifyHashedPassword(
                 usuario,
                 usuario.Senha,
                 dto.Senha
             );
-
-            if (resultado == PasswordVerificationResult.Failed)
+        }
+        catch (FormatException)
+        {
+            // Compatibilidade com senhas antigas armazenadas em texto puro.
+            // Se a senha estiver correta, ela será convertida para hash.
+            if (!string.Equals(
+                usuario.Senha,
+                dto.Senha,
+                StringComparison.Ordinal))
+            {
                 return null;
+            }
 
-            if (usuario.Ativo != 1)
-                return null;
+            resultado = PasswordVerificationResult.SuccessRehashNeeded;
+        }
 
-            var token = _jwtService.GenerateToken(
-                usuario.IdUsuario,
-                usuario.Login,
-                usuario.Perfil
+        if (resultado == PasswordVerificationResult.Failed)
+            return null;
+
+        // Atualiza senhas antigas para o formato de hash.
+        if (resultado == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            usuario.Senha = _passwordHasher.HashPassword(
+                usuario,
+                dto.Senha
             );
 
-            return token;
+            _usuarioRepository.Update(usuario);
+
+            await _usuarioRepository.SaveChangesAsync();
         }
+
+        var token = _jwtService.GenerateToken(
+            usuario.IdUsuario,
+            usuario.Login,
+            usuario.Perfil
+        );
+
+        return token;
     }
+
+        }
 }

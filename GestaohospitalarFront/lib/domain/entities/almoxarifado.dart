@@ -1,4 +1,4 @@
-// lib/domain/entities/almoxarifado.dart
+
 import 'entitie.dart';
 
 class Almoxarifado extends Entitie {
@@ -11,13 +11,14 @@ class Almoxarifado extends Entitie {
   int estoqueMinimo;
   String? lote;
   DateTime? validade;
-  
-  // NOVOS CAMPOS EXCLUSIVOS (Não vão no toMap)
+
+  // Dados exclusivos de medicamento
+  int? idMedicamento;
   String? principioAtivo;
   String? contraindicacoes;
 
   Almoxarifado({
-    super.id, 
+    super.id,
     required this.nome,
     this.categoria,
     this.descricao,
@@ -27,38 +28,48 @@ class Almoxarifado extends Entitie {
     required this.estoqueMinimo,
     this.lote,
     this.validade,
+    this.idMedicamento,
     this.principioAtivo,
     this.contraindicacoes,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'id_almoxarifado': id,
+      'idAlmoxarifado': id,
+      'idMedicamento': idMedicamento,
       'nome': nome,
       'categoria': categoria,
       'descricao': descricao,
       'quantidade': quantidade,
       'unidade': unidade,
-      'valor_unitario': valorUnitario,
-      'estoque_minimo': estoqueMinimo,
+      'valorUnitario': valorUnitario,
+      'estoqueMinimo': estoqueMinimo,
       'lote': lote,
       'validade': validade?.toIso8601String(),
-      // NÃO COLOQUE OS NOVOS CAMPOS AQUI.
+      'principioAtivo': principioAtivo,
+      'contraindicacoes': contraindicacoes,
     };
   }
 
-  factory Almoxarifado.fromMap(Map<String, dynamic> map) {
+  factory Almoxarifado.fromJson(Map<String, dynamic> json) {
     return Almoxarifado(
-      id: map['id_almoxarifado'],
-      nome: map['nome'],
-      categoria: map['categoria'],
-      descricao: map['descricao'],
-      quantidade: map['quantidade'] ?? 0,
-      unidade: map['unidade'],
-      valorUnitario: map['valor_unitario'] != null ? (map['valor_unitario'] as num).toDouble() : 0.0,
-      estoqueMinimo: map['estoque_minimo'] ?? 0,
-      lote: map['lote'],
-      validade: map['validade'] != null ? DateTime.tryParse(map['validade']) : null,
+      id: json['idAlmoxarifado'],
+      nome: json['nome'] ?? '',
+      categoria: json['categoria'],
+      descricao: json['descricao'],
+      quantidade: json['quantidade'] ?? 0,
+      unidade: json['unidade'],
+      valorUnitario: json['valorUnitario'] != null
+          ? (json['valorUnitario'] as num).toDouble()
+          : 0.0,
+      estoqueMinimo: json['estoqueMinimo'] ?? 0,
+      lote: json['lote'],
+      validade: json['validade'] != null
+          ? DateTime.tryParse(json['validade'].toString())
+          : null,
+      idMedicamento: json['idMedicamento'],
+      principioAtivo: json['principioAtivo'],
+      contraindicacoes: json['contraindicacoes'],
     );
   }
 }

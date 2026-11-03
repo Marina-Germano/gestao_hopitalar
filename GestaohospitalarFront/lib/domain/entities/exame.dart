@@ -12,21 +12,24 @@ class Exame extends Entitie {
     this.descricao,
   });
 
-  Map<String, dynamic> toMap() {
+  // Usado para ENVIAR dados para a API no cadastro/atualização (POST/PUT)
+  Map<String, dynamic> toJson() {
     return {
-      'id_exame': id,
       'nome': nome,
       'valor': valor,
       'descricao': descricao,
     };
   }
 
-  factory Exame.fromMap(Map<String, dynamic> map) {
+  // Usado para RECEBER dados da API (GET)
+  factory Exame.fromJson(Map<String, dynamic> json) {
     return Exame(
-      id: map['id_exame'] != null ? map['id_exame'] as int : (map['id'] as int?),
-      nome: map['nome'] as String? ?? 'Sem Nome',
-      valor: map['valor'] != null ? (map['valor'] as num).toDouble() : null,
-      descricao: map['descricao'] as String?,
+      id: json['idExame'] != null 
+          ? int.tryParse(json['idExame'].toString()) 
+          : (json['id'] != null ? int.tryParse(json['id'].toString()) : null),
+      nome: json['nome']?.toString() ?? 'Sem Nome',
+      valor: json['valor'] != null ? (json['valor'] as num).toDouble() : null,
+      descricao: json['descricao']?.toString(),
     );
   }
 }

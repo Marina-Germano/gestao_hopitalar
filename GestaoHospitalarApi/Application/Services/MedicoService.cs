@@ -171,6 +171,7 @@ namespace GestaoHospitalarApi.Application.Services
                 Id = m.IdMedico,
                 Nome = m.IdUsuarioNavigation!.IdPessoaNavigation!.Nome, // Caminho correto
                 Crm = m.Crm ?? "",
+                Cpf = m.IdUsuarioNavigation!.IdPessoaNavigation!.Cpf ?? "",
                 Especialidade = m.IdEspecialidadeNavigation?.DescricaoEspecialidade ?? ""
             });
         }
@@ -183,6 +184,7 @@ namespace GestaoHospitalarApi.Application.Services
                 Id = m.IdMedico,
                 Nome = m.IdUsuarioNavigation!.IdPessoaNavigation!.Nome, // Caminho correto
                 Crm = m.Crm ?? "",
+                Cpf = m.IdUsuarioNavigation!.IdPessoaNavigation!.Cpf ?? "",
                 Especialidade = m.IdEspecialidadeNavigation?.DescricaoEspecialidade ?? ""
             });
         }

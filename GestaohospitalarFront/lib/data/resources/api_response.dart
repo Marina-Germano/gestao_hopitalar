@@ -2,14 +2,16 @@ class ApiResponse<T> {
   final bool sucesso;
   final String? mensagem;
   final T? dados;
+  final List<String>? erros;
 
-  ApiResponse({required this.sucesso, this.mensagem, this.dados});
+  ApiResponse({required this.sucesso, this.mensagem, this.dados, this.erros});
 
   factory ApiResponse.fromJson(Map<String, dynamic> json, T Function(dynamic) fromJsonT) {
     return ApiResponse(
       sucesso: json['sucesso'] ?? false,
       mensagem: json['mensagem'],
       dados: json['dados'] != null ? fromJsonT(json['dados']) : null,
+      erros: json['erros'] != null ? List<String>.from(json['erros']) : null,
     );
   }
 }

@@ -1,4 +1,4 @@
-// lib/pages/arquivo/tela_arquivo.dart
+
 import 'package:flutter/material.dart';
 
 class TelaArquivo extends StatefulWidget {
@@ -6,14 +6,21 @@ class TelaArquivo extends StatefulWidget {
   final Future<List<Map<String, dynamic>>> Function() carregarArquivados;
   final Future<void> Function(int id) restaurar;
 
+  // Campos configuráveis para médicos e pacientes.
+  final String campoDocumento;
+  final String rotuloDocumento;
+  final String hintBusca;
+
   const TelaArquivo({
     super.key,
     required this.titulo,
     required this.carregarArquivados,
     required this.restaurar,
+    this.campoDocumento = 'crm',
+    this.rotuloDocumento = 'CRM',
+    this.hintBusca = 'Buscar por nome ou CRM',
   });
 
-  /// Função estática auxiliar para chamar a confirmação de arquivamento em outras telas.
   static Future<bool> confirmarArquivamento({
     required BuildContext context,
     required String nomeItem,
@@ -35,6 +42,7 @@ class TelaArquivo extends StatefulWidget {
         ],
       ),
     );
+
     return confirmou ?? false;
   }
 
@@ -45,6 +53,8 @@ class TelaArquivo extends StatefulWidget {
 class _TelaArquivoState extends State<TelaArquivo> {
   List<Map<String, dynamic>> todos = [];
   String busca = '';
+  bool carregando = true;
+  String? erro;
 
   @override
   void initState() {
@@ -53,8 +63,28 @@ class _TelaArquivoState extends State<TelaArquivo> {
   }
 
   Future<void> _carregar() async {
-    final dados = await widget.carregarArquivados();
-    setState(() => todos = dados);
+    setState(() {
+      carregando = true;
+      erro = null;
+    });
+
+    try {
+      final dados = await widget.carregarArquivados();
+
+      if (!mounted) return;
+
+      setState(() {
+        todos = dados;
+        carregando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        erro = e.toString();
+        carregando = false;
+      });
+    }
   }
 
   String _norm(String s) => s
@@ -70,26 +100,44 @@ class _TelaArquivoState extends State<TelaArquivo> {
 
   List<Map<String, dynamic>> get filtrados {
     final q = busca.trim();
+
     if (q.isEmpty) return todos;
+
     final qNome = _norm(q);
     final qNum = _digitos(q);
-    return todos.where((p) {
-      final nomeOk = _norm('${p['nome'] ?? ''}').contains(qNome);
-      final numOk = qNum.isNotEmpty &&
-          (_digitos('${p['cpf'] ?? ''}').contains(qNum) ||
-              _digitos('${p['rg'] ?? ''}').contains(qNum));
-      return nomeOk || numOk;
+
+    return todos.where((item) {
+      final nomeOk = _norm('${item['nome'] ?? ''}').contains(qNome);
+
+      final documento = '${item[widget.campoDocumento] ?? ''}';
+
+      final documentoOk = qNum.isNotEmpty &&
+          _digitos(documento).contains(qNum);
+
+      return nomeOk || documentoOk;
     }).toList();
   }
 
   Future<void> _abrirItem(Map<String, dynamic> item) async {
+    final id = item['id'];
+
+    if (id is! int) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível identificar este registro.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final restaurar = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('${item['nome']}'),
+        title: Text('${item['nome'] ?? 'Registro'}'),
         content: Text(
-          'CPF: ${item['cpf'] ?? '-'}\n'
-          'Identidade: ${item['rg'] ?? '-'}\n\n'
+          '${widget.rotuloDocumento}: '
+          '${item[widget.campoDocumento] ?? '-'}\n\n'
           'Deseja restaurar este registro?',
         ),
         actions: [
@@ -107,45 +155,90 @@ class _TelaArquivoState extends State<TelaArquivo> {
     );
 
     if (restaurar == true) {
-      await widget.restaurar(item['id'] as int);
-      await _carregar(); // Recarrega a lista para remover o item restaurado da visualização
+      try {
+        await widget.restaurar(id);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registro restaurado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        await _carregar();
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao restaurar registro: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.titulo)),
+      appBar: AppBar(
+        title: Text(widget.titulo),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Buscar por nome, CPF ou identidade',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: widget.hintBusca,
+                border: const OutlineInputBorder(),
               ),
               onChanged: (v) => setState(() => busca = v),
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: filtrados.isEmpty
-                  ? const Center(
-                      child: Text('Nenhum registro arquivado encontrado'),
-                    )
-                  : ListView.builder(
-                      itemCount: filtrados.length,
-                      itemBuilder: (_, i) {
-                        final p = filtrados[i];
-                        return ListTile(
-                          leading: const Icon(Icons.person),
-                          title: Text('${p['nome']}'),
-                          subtitle: Text('CPF: ${p['cpf'] ?? '-'}'),
-                          onTap: () => _abrirItem(p),
-                        );
-                      },
-                    ),
+              child: carregando
+                  ? const Center(child: CircularProgressIndicator())
+                  : erro != null
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Erro ao carregar registros:\n$erro'),
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: _carregar,
+                                child: const Text('Tentar novamente'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : filtrados.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Nenhum registro arquivado encontrado',
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: filtrados.length,
+                              itemBuilder: (_, i) {
+                                final item = filtrados[i];
+
+                                return ListTile(
+                                  leading: const Icon(Icons.person),
+                                  title: Text('${item['nome'] ?? '-'}'),
+                                  subtitle: Text(
+                                    '${widget.rotuloDocumento}: '
+                                    '${item[widget.campoDocumento] ?? '-'}',
+                                  ),
+                                  onTap: () => _abrirItem(item),
+                                );
+                              },
+                            ),
             ),
           ],
         ),

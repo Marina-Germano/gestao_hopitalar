@@ -1,84 +1,147 @@
-import 'package:sqflite/sqflite.dart';
-import '../../data/resources/database_provider.dart';
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
 import '../entities/sala.dart';
+import '../../data/resources/api_response.dart';
 
 class SalaService {
-  Future<Database> get db async => await DatabaseProvider.instance.database;
+  static const String baseUrl = 'http://localhost:5111/api/Sala';
 
+  // ==========================================
+  // POST / PUT: Salvar Sala
+  // ==========================================
   Future<void> salvar(Sala sala) async {
-    final database = await db;
-    if (sala.id == null) {
-      await database.insert('sala', sala.toMap());
+    try {
+      late http.Response response;
 
-    } else {
-      await database.update('sala', sala.toMap(), 
-          where: 'id_sala = ?', whereArgs: [sala.id]);
+      if (sala.id == null) {
+        response = await http.post(
+          Uri.parse('$baseUrl/cadastrar'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(sala.toJson()),
+        );
+      } else {
+        response = await http.put(
+          Uri.parse('$baseUrl/${sala.id}'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(sala.toJson()),
+        );
+      }
+
+      if (response.statusCode != 200 &&
+          response.statusCode != 201 &&
+          response.statusCode != 204) {
+        throw Exception(
+          'Erro ao salvar sala. Status: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erro ao salvar sala: $e');
     }
   }
 
-  
-
+  // ==========================================
+  // DELETE: Excluir Sala
+  // ==========================================
   Future<void> excluir(int id) async {
-    final database = await db;
-    await database.delete('sala', where: 'id_sala = ?', whereArgs: [id]);
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$id'),
+      );
+
+      if (response.statusCode != 200 &&
+          response.statusCode != 204) {
+        throw Exception(
+          'Erro ao excluir sala. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erro ao excluir sala: $e');
+    }
   }
 
+  // ==========================================
+  // GET: Listar todas as Salas
+  // ==========================================
   Future<List<Sala>> listarTodas() async {
-    final database = await db;
-    final List<Map<String, dynamic>> maps = await database.query('sala');
-    return maps.map((m) => Sala.fromMap(m)).toList();
+    try {
+      final response = await http.get(Uri.parse(baseUrl));
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        final apiResponse = ApiResponse<List<Sala>>.fromJson(
+          jsonResponse,
+          (dados) => (dados as List)
+              .map((item) => Sala.fromJson(item))
+              .toList(),
+        );
+
+        return apiResponse.dados ?? [];
+      } else {
+        throw Exception(
+          'Erro ao carregar salas. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erro ao listar salas: $e');
+    }
   }
 
-  Future<Database> _getDb() async {
-    final db = await DatabaseProvider.instance.database;
-    // Tabela simplificada: sem ala/andar
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS sala (
-        id_sala INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo TEXT NOT NULL,
-        nome_sala TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'LIVRE'
-      )
-    ''');
-    return db;
-  }
-
+  // ==========================================
+  // PUT: Atualizar Status da Sala
+  // ==========================================
   Future<void> atualizarStatusSala(int idSala, String status) async {
-    final db = await _getDb();
-    await db.update(
-      'sala',
-      {'status': status},
-      where: 'id_sala = ?',
-      whereArgs: [idSala],
-    );
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/$idSala/status'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'status': status,
+        }),
+      );
+
+      if (response.statusCode != 200 &&
+          response.statusCode != 204) {
+        throw Exception(
+          'Erro ao atualizar status da sala. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erro ao atualizar status da sala: $e');
+    }
   }
 
-  // Substitua este método no seu SalaService
-  Future<List<Map<String, dynamic>>> buscarPacientesPorSala(int idSala) async {
-    final database = await db; 
-    
-    // Agora fazemos JOIN com Paciente e LEFT JOIN com Triagem
-    return await database.rawQuery('''
-      SELECT
-        pr.*,
-        p.nome as nome_paciente,
-        p.cpf,
-        p.nascimento,
-        p.sexo,
-        p.alergias,
-        p.tipo_sanguineo,
-        p.historico_clinico,
-        t.frequencia_cardiaca,
-        t.temperatura,
-        t.saturacao,
-        t.queixa,
-        t.pressao,
-        t.risco
-      FROM prontuario pr
-      JOIN paciente p ON pr.id_paciente = p.id_paciente
-      LEFT JOIN triagem t ON pr.id_triagem = t.id_triagem
-      WHERE pr.id_sala = ? AND pr.status_prontuario = 'ATIVO'
-    ''', [idSala]);
-  }
+  // ==========================================
+  // GET: Buscar Pacientes por Sala
+  // ==========================================
+  Future<List<Map<String, dynamic>>> buscarPacientesPorSala(
+      int idSala) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/$idSala/pacientes'),
+      );
 
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        final apiResponse =
+            ApiResponse<List<Map<String, dynamic>>>.fromJson(
+          jsonResponse,
+          (dados) => (dados as List)
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList(),
+        );
+
+        return apiResponse.dados ?? [];
+      } else {
+        throw Exception(
+          'Erro ao buscar pacientes da sala. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erro ao buscar pacientes por sala: $e');
+    }
+  }
 }

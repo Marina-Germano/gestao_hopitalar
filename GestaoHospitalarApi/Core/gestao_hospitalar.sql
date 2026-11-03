@@ -103,6 +103,7 @@ CREATE TABLE sala (
     id_sala INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     id_ala INT NOT NULL,
     nome VARCHAR(50) NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
     status VARCHAR(20) CHECK (status IN ('LIVRE', 'OCUPADA', 'MANUTENCAO'))
 );
 

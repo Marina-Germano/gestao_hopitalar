@@ -64,7 +64,7 @@ class _ListarConvenioState extends State<ListarConvenio> {
 
     if (confirmar == true) {
       try {
-        await widget.service.arquivarConvenio(convenio);
+        await widget.service.excluirConvenio(convenio); // 👈 Chamando o método correto do service
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

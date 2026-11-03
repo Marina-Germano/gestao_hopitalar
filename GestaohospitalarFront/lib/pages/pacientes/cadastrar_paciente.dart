@@ -1,17 +1,22 @@
-// lib/pages/pacientes/cadastrar_paciente.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../domain/entities/paciente.dart';
 import '../../../domain/services/paciente_service.dart';
 import '../../../domain/services/convenio_service.dart';
-import '../convenios/cadastrar_convenio.dart'; // ✅ Import para abrir o cadastro rápido
+import '../convenios/cadastrar_convenio.dart';
 
 class CadastrarPaciente extends StatefulWidget {
   final PacienteService service;
   final ConvenioService convenioService;
   final Paciente? pacienteEdicao;
 
-  const CadastrarPaciente({super.key, required this.service, required this.convenioService, this.pacienteEdicao});
+  const CadastrarPaciente({
+    super.key,
+    required this.service,
+    required this.convenioService,
+    this.pacienteEdicao,
+  });
 
   @override
   State<CadastrarPaciente> createState() => _CadastrarPacienteState();
@@ -34,8 +39,8 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
   final _estadoCtrl = TextEditingController();
   final _cepCtrl = TextEditingController();
   final _responsavelCtrl = TextEditingController();
-  
-  String ? _sexoSelecionado;
+
+  String? _sexoSelecionado;
   DateTime? _dataNascimento;
 
   int? _idConvenioSelecionado;
@@ -46,11 +51,11 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
   @override
   void initState() {
     super.initState();
-    widget.convenioService.carregarConvenios();
 
     if (widget.pacienteEdicao != null) {
       final p = widget.pacienteEdicao!;
-      _nomeCtrl.text = p.nome ?? '';
+
+      _nomeCtrl.text = p.nome;
       _cpfCtrl.text = p.cpf ?? '';
       _alergiasCtrl.text = p.alergias ?? '';
       _tipoSanguineoCtrl.text = p.tipoSanguineo ?? '';
@@ -63,105 +68,202 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
       _estadoCtrl.text = p.estado ?? '';
       _cepCtrl.text = p.cep ?? '';
       _responsavelCtrl.text = p.nomeResponsavel ?? '';
-      
+
       if (p.sexo != null && p.sexo!.isNotEmpty) {
-        String s = p.sexo![0].toUpperCase() + p.sexo!.substring(1).toLowerCase();
-        if (['MASCULINO', 'FEMININO', 'OUTRO'].contains(s)) {
-          _sexoSelecionado = s;
+        final sexo = p.sexo!.toUpperCase();
+
+        if (['MASCULINO', 'FEMININO', 'OUTRO'].contains(sexo)) {
+          _sexoSelecionado = sexo;
         }
       }
-      
+
       _dataNascimento = p.nascimento;
+
       if (_dataNascimento != null) {
-        _nascimentoCtrl.text = "${_dataNascimento!.day.toString().padLeft(2, '0')}/${_dataNascimento!.month.toString().padLeft(2, '0')}/${_dataNascimento!.year}";
+        _nascimentoCtrl.text =
+            "${_dataNascimento!.day.toString().padLeft(2, '0')}/"
+            "${_dataNascimento!.month.toString().padLeft(2, '0')}/"
+            "${_dataNascimento!.year}";
       }
 
-      _carregarConvenio(p.id!);
+      _prepararEdicao(p.id!);
+    } else {
+      widget.convenioService.carregarConvenios();
+    }
+  }
+
+  Future<void> _prepararEdicao(int idPaciente) async {
+    try {
+      await widget.convenioService.carregarConvenios();
+
+      if (!mounted) return;
+
+      await _carregarConvenio(idPaciente);
+    } catch (e) {
+      debugPrint('Erro ao preparar edição do paciente: $e');
     }
   }
 
   Future<void> _carregarConvenio(int idPaciente) async {
-    final vinculo = await widget.service.buscarVinculoConvenio(idPaciente);
-    if (vinculo != null && mounted) {
+    try {
+      final vinculo =
+          await widget.service.buscarVinculoConvenio(idPaciente);
+
+      if (vinculo == null || !mounted) return;
+
+      final idRecebido = int.tryParse(
+        (vinculo['idConvenio'] ??
+                vinculo['id_convenio'] ??
+                vinculo['IdConvenio'])
+            ?.toString() ??
+            '',
+      );
+
+      final numeroCarteira =
+          vinculo['numeroCarteira'] ??
+          vinculo['numero_carteira'] ??
+          vinculo['numero'];
+
+      final validade = vinculo['validade'] ?? vinculo['Validade'];
+
+      final idsDisponiveis = widget.convenioService.convenios
+          .map((c) => c.id)
+          .whereType<int>()
+          .toSet();
+
+      debugPrint('Convênio recebido da API: $idRecebido');
+      debugPrint('IDs disponíveis: $idsDisponiveis');
+
       setState(() {
-        _idConvenioSelecionado = vinculo['id_convenio'];
-        _carteiraCtrl.text = vinculo['numero_carteira'] ?? '';
-        if (vinculo['validade'] != null) {
-          _validadeCarteira = DateTime.tryParse(vinculo['validade']);
+        _idConvenioSelecionado =
+            idRecebido != null && idsDisponiveis.contains(idRecebido)
+                ? idRecebido
+                : null;
+
+        _carteiraCtrl.text = numeroCarteira?.toString() ?? '';
+
+        if (validade != null) {
+          _validadeCarteira = DateTime.tryParse(validade.toString());
+
           if (_validadeCarteira != null) {
-            _validadeCtrl.text = "${_validadeCarteira!.day.toString().padLeft(2, '0')}/${_validadeCarteira!.month.toString().padLeft(2, '0')}/${_validadeCarteira!.year}";
+            _validadeCtrl.text =
+                "${_validadeCarteira!.day.toString().padLeft(2, '0')}/"
+                "${_validadeCarteira!.month.toString().padLeft(2, '0')}/"
+                "${_validadeCarteira!.year}";
           }
         }
       });
+    } catch (e) {
+      debugPrint('Erro ao carregar convênio do paciente: $e');
     }
   }
 
   @override
   void dispose() {
-    _nomeCtrl.dispose(); _cpfCtrl.dispose(); _nascimentoCtrl.dispose(); _alergiasCtrl.dispose();
-    _tipoSanguineoCtrl.dispose(); _historicoCtrl.dispose(); _telefoneCtrl.dispose(); _ruaCtrl.dispose();
-    _numeroCasaCtrl.dispose(); _bairroCtrl.dispose(); _cidadeCtrl.dispose(); _estadoCtrl.dispose();
-    _cepCtrl.dispose(); _responsavelCtrl.dispose();
-    _carteiraCtrl.dispose(); _validadeCtrl.dispose();
+    _nomeCtrl.dispose();
+    _cpfCtrl.dispose();
+    _nascimentoCtrl.dispose();
+    _alergiasCtrl.dispose();
+    _tipoSanguineoCtrl.dispose();
+    _historicoCtrl.dispose();
+    _telefoneCtrl.dispose();
+    _ruaCtrl.dispose();
+    _numeroCasaCtrl.dispose();
+    _bairroCtrl.dispose();
+    _cidadeCtrl.dispose();
+    _estadoCtrl.dispose();
+    _cepCtrl.dispose();
+    _responsavelCtrl.dispose();
+    _carteiraCtrl.dispose();
+    _validadeCtrl.dispose();
+
     super.dispose();
   }
 
   Future<void> _selecionarData(BuildContext context) async {
-    final DateTime? escolhida = await showDatePicker(
-      context: context, initialDate: _dataNascimento ?? DateTime(2000),
-      firstDate: DateTime(1900), lastDate: DateTime.now(),
+    final escolhida = await showDatePicker(
+      context: context,
+      initialDate: _dataNascimento ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
     );
+
     if (escolhida != null) {
       setState(() {
         _dataNascimento = escolhida;
-        _nascimentoCtrl.text = "${escolhida.day.toString().padLeft(2, '0')}/${escolhida.month.toString().padLeft(2, '0')}/${escolhida.year}";
+        _nascimentoCtrl.text =
+            "${escolhida.day.toString().padLeft(2, '0')}/"
+            "${escolhida.month.toString().padLeft(2, '0')}/"
+            "${escolhida.year}";
       });
     }
   }
 
   Future<void> _selecionarValidade(BuildContext context) async {
-    final DateTime? escolhida = await showDatePicker(
-      context: context, initialDate: _validadeCarteira ?? DateTime.now(),
-      firstDate: DateTime.now(), lastDate: DateTime(2100),
+    final escolhida = await showDatePicker(
+      context: context,
+      initialDate: _validadeCarteira ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
     );
+
     if (escolhida != null) {
       setState(() {
         _validadeCarteira = escolhida;
-        _validadeCtrl.text = "${escolhida.day.toString().padLeft(2, '0')}/${escolhida.month.toString().padLeft(2, '0')}/${escolhida.year}";
+        _validadeCtrl.text =
+            "${escolhida.day.toString().padLeft(2, '0')}/"
+            "${escolhida.month.toString().padLeft(2, '0')}/"
+            "${escolhida.year}";
       });
     }
   }
 
-  // ✅ Função para confirmar e executar a exclusão
   void _confirmarExclusao() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Excluir Paciente"),
-        content: Text("Tem certeza que deseja excluir o paciente ${_nomeCtrl.text}? Esta ação não pode ser desfeita."),
+        content: Text(
+          "Tem certeza que deseja excluir o paciente ${_nomeCtrl.text}? "
+          "Esta ação não pode ser desfeita.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancelar"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
-              Navigator.pop(context); // Fecha o diálogo de confirmação
+              Navigator.pop(context);
+
               try {
-                if (widget.pacienteEdicao?.id != null) {
-                  await widget.service.deletarPaciente(widget.pacienteEdicao!.id!);
+                final id = widget.pacienteEdicao?.id;
+
+                if (id != null) {
+                  await widget.service.deletarPaciente(id);
+
                   if (mounted) {
-                    Navigator.pop(context); // Fecha o modal de cadastro/edição
+                    Navigator.pop(context);
+
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Paciente excluído com sucesso!'), backgroundColor: Colors.red),
+                      const SnackBar(
+                        content: Text('Paciente excluído com sucesso!'),
+                        backgroundColor: Colors.red,
+                      ),
                     );
                   }
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erro ao excluir: $e'), backgroundColor: Colors.red),
+                    SnackBar(
+                      content: Text('Erro ao excluir: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }
@@ -173,6 +275,104 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
     );
   }
 
+  Future<void> _salvarPaciente(bool isEdicao) async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_idConvenioSelecionado != null && _validadeCarteira == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Por favor, informe a validade da carteira do convênio!',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final novoPaciente = Paciente(
+        id: widget.pacienteEdicao?.id,
+        ativo: widget.pacienteEdicao?.ativo ?? 1,
+        nome: _nomeCtrl.text.trim(),
+        cpf: _cpfCtrl.text.trim(),
+        sexo: _sexoSelecionado,
+        nascimento: _dataNascimento,
+        alergias:
+            _alergiasCtrl.text.isEmpty ? null : _alergiasCtrl.text,
+        tipoSanguineo: _tipoSanguineoCtrl.text.isEmpty
+            ? null
+            : _tipoSanguineoCtrl.text,
+        historicoClinico:
+            _historicoCtrl.text.isEmpty ? null : _historicoCtrl.text,
+        telefone:
+            _telefoneCtrl.text.isEmpty ? null : _telefoneCtrl.text,
+        rua: _ruaCtrl.text.isEmpty ? null : _ruaCtrl.text,
+        numeroCasa: _numeroCasaCtrl.text.isEmpty
+            ? null
+            : int.tryParse(_numeroCasaCtrl.text),
+        bairro: _bairroCtrl.text.isEmpty ? null : _bairroCtrl.text,
+        cidade: _cidadeCtrl.text.isEmpty ? null : _cidadeCtrl.text,
+        estado: _estadoCtrl.text.isEmpty ? null : _estadoCtrl.text,
+        cep: _cepCtrl.text.length == 8 ? _cepCtrl.text : null,
+        nomeResponsavel:
+            _responsavelCtrl.text.isEmpty ? null : _responsavelCtrl.text,
+      );
+
+      String? nomeConvenio;
+
+      if (_idConvenioSelecionado != null) {
+        for (final convenio in widget.convenioService.convenios) {
+          if (convenio.id == _idConvenioSelecionado) {
+            nomeConvenio = convenio.nomeConvenio;
+            break;
+          }
+        }
+
+        if (nomeConvenio == null) {
+          throw Exception(
+            'O convênio selecionado não foi encontrado. '
+            'Atualize a lista de convênios e tente novamente.',
+          );
+        }
+      }
+
+      await widget.service.salvarPaciente(
+        novoPaciente,
+        idConvenio: _idConvenioSelecionado,
+        nomeConvenio: nomeConvenio,
+        numeroCarteira: _carteiraCtrl.text.trim().isEmpty
+            ? null
+            : _carteiraCtrl.text.trim(),
+        validade: _validadeCarteira,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isEdicao
+                  ? 'Paciente atualizado!'
+                  : 'Cadastrado com sucesso!',
+            ),
+            backgroundColor: isEdicao ? Colors.blue : Colors.teal,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdicao = widget.pacienteEdicao != null;
@@ -181,7 +381,10 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
       height: MediaQuery.of(context).size.height * 0.88,
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
       ),
       padding: const EdgeInsets.all(24),
       child: Form(
@@ -193,88 +396,288 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
               children: [
                 Row(
                   children: [
-                    Icon(isEdicao ? Icons.edit : Icons.assignment_ind, color: Colors.teal, size: 28),
+                    Icon(
+                      isEdicao ? Icons.edit : Icons.assignment_ind,
+                      color: Colors.teal,
+                      size: 28,
+                    ),
                     const SizedBox(width: 8),
                     Text(
-                      isEdicao ? "Editar Paciente" : "Cadastrar Paciente",
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal),
+                      isEdicao
+                          ? "Editar Paciente"
+                          : "Cadastrar Paciente",
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
                     ),
                   ],
                 ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context))
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ],
             ),
             const Divider(height: 30),
-            
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("1. Identificação Pessoal", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const Text(
+                      "1. Identificação Pessoal",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    TextFormField(controller: _nomeCtrl, decoration: const InputDecoration(labelText: "Nome Completo *", prefixIcon: Icon(Icons.person), border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? "Obrigatório" : null),
+                    TextFormField(
+                      controller: _nomeCtrl,
+                      decoration: const InputDecoration(
+                        labelText: "Nome Completo *",
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? "Obrigatório" : null,
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: TextFormField(controller: _cpfCtrl, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: const InputDecoration(labelText: "CPF *", prefixIcon: Icon(Icons.badge), border: OutlineInputBorder()), validator: (v) => v == null || v.length != 11 ? "11 dígitos" : null)),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cpfCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: const InputDecoration(
+                              labelText: "CPF *",
+                              prefixIcon: Icon(Icons.badge),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) =>
+                                v == null || v.length != 11
+                                    ? "11 dígitos"
+                                    : null,
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: TextFormField(controller: _telefoneCtrl, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: const InputDecoration(labelText: "Telefone", prefixIcon: Icon(Icons.phone), border: OutlineInputBorder()))),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _telefoneCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: const InputDecoration(
+                              labelText: "Telefone",
+                              prefixIcon: Icon(Icons.phone),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: TextFormField(controller: _nascimentoCtrl, readOnly: true, onTap: () => _selecionarData(context), decoration: const InputDecoration(labelText: "Nascimento *", prefixIcon: Icon(Icons.calendar_today), border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? "Selecione" : null)),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _nascimentoCtrl,
+                            readOnly: true,
+                            onTap: () => _selecionarData(context),
+                            decoration: const InputDecoration(
+                              labelText: "Nascimento *",
+                              prefixIcon: Icon(Icons.calendar_today),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) =>
+                                v == null || v.isEmpty ? "Selecione" : null,
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: DropdownButtonFormField<String>(initialValue: _sexoSelecionado, decoration: const InputDecoration(labelText: "Sexo Biológico", border: OutlineInputBorder()), items: const ['MASCULINO', 'FEMININO', 'OUTRO'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => _sexoSelecionado = v!))),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _sexoSelecionado,
+                            decoration: const InputDecoration(
+                              labelText: "Sexo Biológico",
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              'MASCULINO',
+                              'FEMININO',
+                              'OUTRO',
+                            ].map((s) {
+                              return DropdownMenuItem<String>(
+                                value: s,
+                                child: Text(s),
+                              );
+                            }).toList(),
+                            onChanged: (v) {
+                              setState(() => _sexoSelecionado = v);
+                            },
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(controller: _responsavelCtrl, decoration: const InputDecoration(labelText: "Responsável Legal", prefixIcon: Icon(Icons.family_restroom), border: OutlineInputBorder())),
+                    TextFormField(
+                      controller: _responsavelCtrl,
+                      decoration: const InputDecoration(
+                        labelText: "Responsável Legal",
+                        prefixIcon: Icon(Icons.family_restroom),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                     const SizedBox(height: 24),
-                    const Text("2. Endereço e Localização", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const Text(
+                      "2. Endereço e Localização",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(flex: 3, child: TextFormField(controller: _ruaCtrl, decoration: const InputDecoration(labelText: "Rua", border: OutlineInputBorder()))),
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            controller: _ruaCtrl,
+                            decoration: const InputDecoration(
+                              labelText: "Rua",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(flex: 1, child: TextFormField(controller: _numeroCasaCtrl, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: const InputDecoration(labelText: "Nº", border: OutlineInputBorder()))),
+                        Expanded(
+                          flex: 1,
+                          child: TextFormField(
+                            controller: _numeroCasaCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: const InputDecoration(
+                              labelText: "Nº",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: TextFormField(controller: _bairroCtrl, decoration: const InputDecoration(labelText: "Bairro", border: OutlineInputBorder()))),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _bairroCtrl,
+                            decoration: const InputDecoration(
+                              labelText: "Bairro",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: TextFormField(controller: _cidadeCtrl, decoration: const InputDecoration(labelText: "Cidade", border: OutlineInputBorder()))),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cidadeCtrl,
+                            decoration: const InputDecoration(
+                              labelText: "Cidade",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(child: TextFormField(controller: _estadoCtrl, maxLength: 2, decoration: const InputDecoration(labelText: "Estado (UF)", border: OutlineInputBorder(), counterText: ""))),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _estadoCtrl,
+                            maxLength: 2,
+                            decoration: const InputDecoration(
+                              labelText: "Estado (UF)",
+                              border: OutlineInputBorder(),
+                              counterText: "",
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: TextFormField(controller: _cepCtrl, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], decoration: const InputDecoration(labelText: "CEP", border: OutlineInputBorder()))),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cepCtrl,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: const InputDecoration(
+                              labelText: "CEP",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text("3. Ficha Clínica Inicial", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const Text(
+                      "3. Ficha Clínica Inicial",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: TextFormField(controller: _tipoSanguineoCtrl, decoration: const InputDecoration(labelText: "Tipo Sanguíneo", prefixIcon: Icon(Icons.bloodtype), border: OutlineInputBorder()))),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _tipoSanguineoCtrl,
+                            decoration: const InputDecoration(
+                              labelText: "Tipo Sanguíneo",
+                              prefixIcon: Icon(Icons.bloodtype),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: TextFormField(controller: _alergiasCtrl, decoration: const InputDecoration(labelText: "Alergias", prefixIcon: Icon(Icons.warning_amber), border: OutlineInputBorder()))),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _alergiasCtrl,
+                            decoration: const InputDecoration(
+                              labelText: "Alergias",
+                              prefixIcon: Icon(Icons.warning_amber),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(controller: _historicoCtrl, maxLines: 3, decoration: const InputDecoration(labelText: "Histórico Clínico", alignLabelWithHint: true, border: OutlineInputBorder())),
-                    
+                    TextFormField(
+                      controller: _historicoCtrl,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: "Histórico Clínico",
+                        alignLabelWithHint: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                     const SizedBox(height: 24),
-                    const Text("4. Cobertura de Saúde (Opcional)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const Text(
+                      "4. Cobertura de Saúde (Opcional)",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -282,16 +685,52 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
                           child: ListenableBuilder(
                             listenable: widget.convenioService,
                             builder: (context, _) {
+                              // Mantém somente IDs válidos e sem duplicidade.
+                              final idsAdicionados = <int>{};
+
+                              final convenios = widget
+                                  .convenioService.convenios
+                                  .where((c) {
+                                final id = c.id;
+                                return id != null &&
+                                    id > 0 &&
+                                    idsAdicionados.add(id);
+                              }).toList();
+
+                              final valorSelecionado =
+                                  _idConvenioSelecionado != null &&
+                                          convenios.any(
+                                            (c) =>
+                                                c.id ==
+                                                _idConvenioSelecionado,
+                                          )
+                                      ? _idConvenioSelecionado
+                                      : null;
+
                               return DropdownButtonFormField<int>(
-                                initialValue: _idConvenioSelecionado,
-                                decoration: const InputDecoration(labelText: "Convênio", border: OutlineInputBorder(), prefixIcon: Icon(Icons.business)),
-                                items: [
-                                  const DropdownMenuItem<int>(value: null, child: Text("Nenhum / Particular")),
-                                  ...widget.convenioService.convenios.map((c) => DropdownMenuItem(value: c.id, child: Text(c.nomeConvenio ?? '')))
-                                ],
-                                onChanged: (v) => setState(() => _idConvenioSelecionado = v),
+                                key: ValueKey(
+                                  'convenio-${valorSelecionado ?? 'nenhum'}-${convenios.length}',
+                                ),
+                                initialValue: valorSelecionado,
+                                decoration: const InputDecoration(
+                                  labelText: "Convênio",
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.business),
+                                ),
+                                hint: const Text("Nenhum / Particular"),
+                                items: convenios.map((c) {
+                                  return DropdownMenuItem<int>(
+                                    value: c.id!,
+                                    child: Text(c.nomeConvenio ?? ''),
+                                  );
+                                }).toList(),
+                                onChanged: (v) {
+                                  setState(() {
+                                    _idConvenioSelecionado = v;
+                                  });
+                                },
                               );
-                            }
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -302,139 +741,112 @@ class _CadastrarPacienteState extends State<CadastrarPaciente> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.add, color: Colors.white),
+                            icon: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                            ),
                             tooltip: "Adicionar Novo Convênio Rápido",
                             onPressed: () {
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
                                 backgroundColor: Colors.transparent,
-                                builder: (context) => CadastrarConvenio(service: widget.convenioService),
+                                builder: (context) => CadastrarConvenio(
+                                  service: widget.convenioService,
+                                ),
                               );
                             },
                           ),
                         ),
                       ],
                     ),
-
                     if (_idConvenioSelecionado != null) ...[
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(child: TextFormField(controller: _carteiraCtrl, decoration: const InputDecoration(labelText: "Nº da Carteira", border: OutlineInputBorder()))),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _carteiraCtrl,
+                              decoration: const InputDecoration(
+                                labelText: "Nº da Carteira",
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: TextFormField(
-                              controller: _validadeCtrl, 
-                              readOnly: true, 
-                              onTap: () => _selecionarValidade(context), 
-                              decoration: const InputDecoration(labelText: "Validade *", prefixIcon: Icon(Icons.calendar_today), border: OutlineInputBorder()),
-                            )
+                              controller: _validadeCtrl,
+                              readOnly: true,
+                              onTap: () => _selecionarValidade(context),
+                              decoration: const InputDecoration(
+                                labelText: "Validade *",
+                                prefixIcon: Icon(Icons.calendar_today),
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
                           ),
                         ],
-                      )
+                      ),
                     ],
                   ],
                 ),
               ),
             ),
             const Divider(),
-            
-            // ✅ BARRA INFERIOR COM O BOTÃO DE EXCLUIR (SE FOR EDIÇÃO) E SALVAR
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Se estiver editando, mostra o botão de excluir à esquerda
                 if (isEdicao)
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                     ),
                     icon: const Icon(Icons.delete),
                     label: const Text("Excluir"),
                     onPressed: _confirmarExclusao,
                   )
                 else
-                  const SizedBox.shrink(), // Se for cadastro novo, deixa o espaço vazio
-
-                // Botões da direita (Cancelar e Salvar)
+                  const SizedBox.shrink(),
                 Row(
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context), 
-                      child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        "Cancelar",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isEdicao ? Colors.blue : Colors.teal, 
-                        foregroundColor: Colors.white, 
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        backgroundColor:
+                            isEdicao ? Colors.blue : Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
                       ),
-                      icon: Icon(isEdicao ? Icons.update : Icons.save),
-                      label: Text(isEdicao ? "Atualizar Paciente" : "Salvar Prontuário"),
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          if (_idConvenioSelecionado != null && _validadeCarteira == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Por favor, informe a validade da carteira do convênio!'), backgroundColor: Colors.red)
-                            );
-                            return;
-                          }
-
-                          try {
-                            final novoPaciente = Paciente(
-                              id: widget.pacienteEdicao?.id, 
-                              ativo: widget.pacienteEdicao?.ativo ?? 1, 
-                              nome: _nomeCtrl.text,
-                              cpf: _cpfCtrl.text,
-                              sexo: _sexoSelecionado, 
-                              nascimento: _dataNascimento,
-                              alergias: _alergiasCtrl.text.isEmpty ? null : _alergiasCtrl.text,
-                              tipoSanguineo: _tipoSanguineoCtrl.text.isEmpty ? null : _tipoSanguineoCtrl.text,
-                              historicoClinico: _historicoCtrl.text.isEmpty ? null : _historicoCtrl.text,
-                              telefone: _telefoneCtrl.text.isEmpty ? null : _telefoneCtrl.text,
-                              rua: _ruaCtrl.text.isEmpty ? null : _ruaCtrl.text,
-                              numeroCasa: _numeroCasaCtrl.text.isEmpty ? null : int.tryParse(_numeroCasaCtrl.text),
-                              bairro: _bairroCtrl.text.isEmpty ? null : _bairroCtrl.text,
-                              cidade: _cidadeCtrl.text.isEmpty ? null : _cidadeCtrl.text,
-                              estado: _estadoCtrl.text.isEmpty ? null : _estadoCtrl.text,
-                              cep: _cepCtrl.text.length == 8 ? _cepCtrl.text : null,
-                              nomeResponsavel: _responsavelCtrl.text.isEmpty ? null : _responsavelCtrl.text,
-                            );
-
-                            await widget.service.salvarPaciente(
-                              novoPaciente, 
-                              idConvenio: _idConvenioSelecionado,
-                              numeroCarteira: _carteiraCtrl.text.isEmpty ? null : _carteiraCtrl.text,
-                              validade: _validadeCarteira,
-                            );
-
-                            if (context.mounted) {
-                              Navigator.pop(context); 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(isEdicao ? 'Paciente atualizado!' : 'Cadastrado com sucesso!'), 
-                                  backgroundColor: isEdicao ? Colors.blue : Colors.teal,
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-                              );
-                            }
-                          }
-                        }
-                      },
+                      icon: Icon(
+                        isEdicao ? Icons.update : Icons.save,
+                      ),
+                      label: Text(
+                        isEdicao
+                            ? "Atualizar Paciente"
+                            : "Salvar Prontuário",
+                      ),
+                      onPressed: () => _salvarPaciente(isEdicao),
                     ),
                   ],
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
