@@ -1,7 +1,9 @@
+
 class EscalaMedica {
   final int? id;
-  final int idMedico;
-  final String? nomeMedico; // Usado para exibição na tela
+  final int? idMedico;
+  final String? crmMedico;
+  final String? nomeMedico;
   final String dataEscala;
   final String horaInicio;
   final String horaFim;
@@ -9,7 +11,8 @@ class EscalaMedica {
 
   EscalaMedica({
     this.id,
-    required this.idMedico,
+    this.idMedico,
+    this.crmMedico,
     this.nomeMedico,
     required this.dataEscala,
     required this.horaInicio,
@@ -17,26 +20,28 @@ class EscalaMedica {
     this.isPlantao = false,
   });
 
-  factory EscalaMedica.fromMap(Map<String, dynamic> map) {
+  factory EscalaMedica.fromJson(Map<String, dynamic> json) {
+    final plantao = json['plantao'];
+
     return EscalaMedica(
-      id: map['id_escala'],
-      idMedico: map['id_medico'],
-      nomeMedico: map['nome_medico'], // Vem do JOIN com a tabela medico
-      dataEscala: map['data_escala'],
-      horaInicio: map['hora_inicio'],
-      horaFim: map['hora_fim'],
-      isPlantao: map['is_plantao'] == 1,
+      id: json['idEscala'] as int?,
+      idMedico: json['idMedico'] as int?,
+      crmMedico: json['crmMedico']?.toString(),
+      nomeMedico: json['nomeMedico']?.toString(),
+      dataEscala: json['dataEscala']?.toString() ?? '',
+      horaInicio: json['horaInicio']?.toString() ?? '',
+      horaFim: json['horaFim']?.toString() ?? '',
+      isPlantao: json['isPlantao'] == true || plantao == 1,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'id_escala': id,
-      'id_medico': idMedico,
-      'data_escala': dataEscala,
-      'hora_inicio': horaInicio,
-      'hora_fim': horaFim,
-      'is_plantao': isPlantao ? 1 : 0,
+      'crmMedico': crmMedico,
+      'dataEscala': dataEscala,
+      'horaInicio': horaInicio,
+      'horaFim': horaFim,
+      'plantao': isPlantao ? 1 : 0,
     };
   }
 }
