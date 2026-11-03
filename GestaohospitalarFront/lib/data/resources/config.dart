@@ -456,5 +456,11 @@ INSERT INTO leito (id_ala, numero, data_higienizacao, situacao) VALUES (13, '405
   INSERT INTO escala_medica (id_medico, data_escala, hora_inicio, hora_fim, is_plantao) VALUES (2, '2026-06-16', '08:00', '18:00', 0);
   INSERT INTO escala_medica (id_medico, data_escala, hora_inicio, hora_fim, is_plantao) VALUES (5, '2026-06-17', '13:00', '19:00', 0);
   INSERT INTO escala_medica (id_medico, data_escala, hora_inicio, hora_fim, is_plantao) VALUES (1, '2026-06-18', '08:00', '12:00', 0);
+  
+  -- PRONTUÁRIO
+INSERT INTO prontuario (id_paciente, id_triagem, id_medico, id_sala, risco_evasao, isolamento, evolucao, status_prontuario) VALUES (1, 1, 1, 1, 'NAO', 'NAO', 'Paciente avaliado pelo médico. Apresenta dor de cabeça leve, sem sinais aparentes de gravidade. Orientado quanto aos cuidados e acompanhamento.', 'ATIVO');
+  
   ''';
+
+  
 }
