@@ -9,7 +9,6 @@ namespace GestaoHospitalarApi.Application.Services
         private readonly ITriagemRepository _triagemRepository;
         private readonly IGenericRepository<Pessoa> _pessoaRepository;
         private readonly IGenericRepository<Paciente> _pacienteRepository;
-        //private readonly IGenericRepository<Usuario> _usuarioRepository;
 
         public TriagemService(
             ITriagemRepository triagemRepository,
@@ -23,43 +22,36 @@ namespace GestaoHospitalarApi.Application.Services
             //_usuarioRepository = usuarioRepository;
         }
 
-        public async Task CadastrarAsync(TriagemCadastroDto dto, string loginUsuarioLogado)
+        public async Task<int> CadastrarAsync(TriagemCadastroDto dto, string loginUsuarioLogado)
         {
             // 1. Busca o Paciente pelo CPF
             var pessoas = await _pessoaRepository.FindAsync(p => p.Cpf == dto.CpfPaciente);
             var pessoa = pessoas.FirstOrDefault();
-            if (pessoa == null) throw new Exception("Nenhum paciente encontrado com este CPF.");
+            if (pessoa == null) throw new Exception($"Nenhum paciente encontrado com o CPF: {dto.CpfPaciente}");
 
             var pacientes = await _pacienteRepository.FindAsync(p => p.IdPessoa == pessoa.IdPessoa);
             var paciente = pacientes.FirstOrDefault();
             if (paciente == null) throw new Exception("O CPF informado não pertence a um paciente ativo.");
 
-            // 2. Busca o Usuário Responsável pelo Login (Token JWT)
-            // var usuarios = await _usuarioRepository.FindAsync(u => u.Login == loginUsuarioLogado);
-            // var usuarioLogado = usuarios.FirstOrDefault();
-            // if (usuarioLogado == null) throw new Exception("Usuário responsável não encontrado ou sessão inválida.");
-
             // 3. Monta a Triagem
             var triagem = new Triagem
             {
                 IdPaciente = paciente.IdPaciente,
-                //IdUsuario = usuarioLogado.IdUsuario,
-                //DataTriagem = DateTime.Now, // Data e hora cravadas pelo servidor automaticamente
-                
                 Pressao = dto.PressaoArterial,
                 Temperatura = dto.Temperatura,
                 FrequenciaCardiaca = dto.FrequenciaCardiaca,
                 Saturacao = dto.Saturacao,
-                
                 Queixa = dto.QueixaPrincipal,
                 EscalaDor = dto.EscalaDor,
-                //Alergias = dto.AlergiasRelatadas,
                 Observacoes = dto.Observacoes,
-                Risco = dto.ClassificacaoRisco
+                Risco = dto.ClassificacaoRisco,
+                Internacao = "NAO" // Inicialmente a triagem não está internada
             };
 
             await _triagemRepository.AddAsync(triagem);
             await _triagemRepository.SaveChangesAsync();
+
+            return triagem.IdTriagem; // 🟢 Retorna o ID gerado para ser lido no Flutter
         }
 
         public async Task<TriagemCadastroDto?> ObterParaEdicaoAsync(int id)
@@ -111,6 +103,7 @@ namespace GestaoHospitalarApi.Application.Services
             return triagens.Select(t => new TriagemListagemDto
             {
                 IdTriagem = t.IdTriagem,
+                IdPaciente = t.IdPaciente,
                 NomePaciente = t.IdPacienteNavigation?.IdPessoaNavigation?.Nome ?? "N/A",
                 CpfPaciente = t.IdPacienteNavigation?.IdPessoaNavigation?.Cpf ?? "N/A",
                 //DataTriagem = t.DataTriagem ?? DateTime.MinValue,

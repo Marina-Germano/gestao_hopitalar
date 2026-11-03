@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:gestaohospitalar01/domain/entities/paciente.dart';
 import 'package:gestaohospitalar01/domain/services/triagem_service.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -96,7 +97,7 @@ class _DashboardState extends State<Dashboard> {
     _convenioService = ConvenioService();
     _convenioService.carregarConvenios();
 
-    _triagemService = TriagemService(widget.database);
+    _triagemService = TriagemService();
     _leitoService = LeitoService();
 
     _exameService = ExameService();
@@ -165,11 +166,18 @@ class _DashboardState extends State<Dashboard> {
                 child: ListTile(
                   leading: CircleAvatar(child: Text("${i + 1}")),
                   title: Text(item['nome'] ?? 'Sem Nome'),
+                  subtitle: Text("CPF: ${item['cpf'] ?? 'N/A'}"),
                   onTap: () async {
                     Navigator.pop(context);
 
+                    // 🟢 SOLUÇÃO DEFINITIVA: Usa o orElse nativo do firstWhere para nunca quebrar
                     final p = _pacienteService.pacientes.firstWhere(
-                      (pac) => pac.id == item['id_paciente'],
+                      (pac) => pac.id == item['id_paciente'] || pac.cpf == item['cpf'],
+                      orElse: () => Paciente(
+                        id: item['id_paciente'],
+                        nome: item['nome_paciente'],
+                        cpf: item['cpf'],
+                      ),
                     );
 
                     await showDialog(
@@ -190,7 +198,7 @@ class _DashboardState extends State<Dashboard> {
                       ),
                     );
 
-                    _carregarFila();
+                    await _carregarFila();
                   },
                 ),
               );
