@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using GestaoHospitalarApi.Application.DTOs.Escala;
 using GestaoHospitalarApi.Domain.Repositories;
@@ -11,7 +12,9 @@ namespace GestaoHospitalarApi.Application.Services
         private readonly IEscalaMedicaRepository _repository;
         private readonly AppDbContext _context;
 
-        public EscalaMedicaService(IEscalaMedicaRepository repository, AppDbContext context)
+        public EscalaMedicaService(
+            IEscalaMedicaRepository repository,
+            AppDbContext context)
         {
             _repository = repository;
             _context = context;
@@ -32,18 +35,24 @@ namespace GestaoHospitalarApi.Application.Services
         public async Task<EscalaMedicaListagemDto?> ObterPorIdAsync(int idEscala)
         {
             var escala = await _repository.ObterPorIdComMedicoAsync(idEscala);
-            if (escala == null) return null;
+
+            if (escala == null)
+                return null;
+
             var lista = await MapearComNomeMedicoAsync(new[] { escala });
+
             return lista.FirstOrDefault();
         }
 
         public async Task<int> CadastrarAsync(EscalaMedicaCadastroDto dto)
         {
             var medico = await _context.Medicos
-                .FirstOrDefaultAsync(m => m.Crm == dto.CrmMedico || m.Crm == dto.CrmMedico);
+                .FirstOrDefaultAsync(m => m.Crm == dto.CrmMedico);
 
             if (medico == null)
-                throw new ArgumentException($"Médico com CRM {dto.CrmMedico} não foi localizado.");
+                throw new ArgumentException(
+                    $"Médico com CRM {dto.CrmMedico} não foi localizado."
+                );
 
             var entidade = new EscalaMedica
             {
@@ -54,14 +63,16 @@ namespace GestaoHospitalarApi.Application.Services
                 IsPlantao = dto.Plantao
             };
 
-            await _repository.AddAsync(entidade);
-            return entidade.IdEscala;
+            // Salva efetivamente no banco e retorna o ID gerado.
+            return await _repository.CadastrarAsync(entidade);
         }
 
         public async Task<bool> AtualizarAsync(int idEscala, EscalaMedicaCadastroDto dto)
         {
             var escala = await _context.EscalaMedicas.FindAsync(idEscala);
-            if (escala == null) return false;
+
+            if (escala == null)
+                return false;
 
             var medico = await _context.Medicos
                 .FirstOrDefaultAsync(m => m.Crm == dto.CrmMedico);
@@ -84,22 +95,28 @@ namespace GestaoHospitalarApi.Application.Services
             return await _repository.ExcluirAsync(idEscala);
         }
 
-        private async Task<List<EscalaMedicaListagemDto>> MapearComNomeMedicoAsync(IEnumerable<EscalaMedica> escalas)
+        private async Task<List<EscalaMedicaListagemDto>> MapearComNomeMedicoAsync(
+            IEnumerable<EscalaMedica> escalas)
         {
-            // Busca a junção de Medico -> Usuario -> Pessoa para obter o Nome real do médico
-            var medicosInfo = await (from m in _context.Medicos
-                                    join u in _context.Usuarios on m.IdUsuario equals u.IdUsuario
-                                    join p in _context.Pessoas on u.IdPessoa equals p.IdPessoa
-                                    select new
-                                    {
-                                        m.IdMedico,
-                                        m.Crm,
-                                        NomeMedico = p.Nome
-                                    }).ToListAsync();
+            // Busca a junção de Médico -> Usuário -> Pessoa
+            // para obter o nome real do médico.
+            var medicosInfo = await (
+                from m in _context.Medicos
+                join u in _context.Usuarios on m.IdUsuario equals u.IdUsuario
+                join p in _context.Pessoas on u.IdPessoa equals p.IdPessoa
+                select new
+                {
+                    m.IdMedico,
+                    m.Crm,
+                    NomeMedico = p.Nome
+                }
+            ).ToListAsync();
 
             return escalas.Select(e =>
             {
-                var medico = medicosInfo.FirstOrDefault(m => m.IdMedico == e.IdMedico);
+                var medico = medicosInfo.FirstOrDefault(
+                    m => m.IdMedico == e.IdMedico
+                );
 
                 return new EscalaMedicaListagemDto
                 {

@@ -33,6 +33,9 @@ namespace GestaoHospitalarApi.Application.Services
         {
             _cache.Remove(CachePacientesAtivos);
             _cache.Remove(CachePacientesInativos);
+
+            Console.WriteLine(
+                "CACHE INVALIDADO: Listagens de pacientes ativos e inativos removidas.");
         }
 
         // CADASTRAR PACIENTE
@@ -267,8 +270,14 @@ namespace GestaoHospitalarApi.Application.Services
                 CachePacientesAtivos,
                 out List<PacienteListagemDto>? pacientesCacheados))
             {
+                Console.WriteLine(
+                    "CACHE HIT: Pacientes ativos recuperados da memória.");
+
                 return pacientesCacheados!;
             }
+
+            Console.WriteLine(
+                "CACHE MISS: Pacientes ativos não encontrados. Consultando banco de dados.");
 
             // Se não estiverem, consulta o banco.
             var pacientes = await _pacienteRepository.ObterTodosComPessoaAsync(ativo: 1);
@@ -286,6 +295,9 @@ namespace GestaoHospitalarApi.Application.Services
                 resultado,
                 TimeSpan.FromMinutes(5));
 
+            Console.WriteLine(
+                $"CACHE SET: {resultado.Count} pacientes ativos armazenados por 5 minutos.");
+
             return resultado;
         }
 
@@ -297,8 +309,14 @@ namespace GestaoHospitalarApi.Application.Services
                 CachePacientesInativos,
                 out List<PacienteListagemDto>? pacientesCacheados))
             {
+                Console.WriteLine(
+                    "CACHE HIT: Pacientes inativos recuperados da memória.");
+
                 return pacientesCacheados!;
             }
+
+            Console.WriteLine(
+                "CACHE MISS: Pacientes inativos não encontrados. Consultando banco de dados.");
 
             // Se não estiverem, consulta o banco.
             var pacientes = await _pacienteRepository.ObterTodosComPessoaAsync(ativo: 0);
@@ -315,6 +333,9 @@ namespace GestaoHospitalarApi.Application.Services
                 CachePacientesInativos,
                 resultado,
                 TimeSpan.FromMinutes(5));
+
+            Console.WriteLine(
+                $"CACHE SET: {resultado.Count} pacientes inativos armazenados por 5 minutos.");
 
             return resultado;
         }
