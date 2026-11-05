@@ -88,6 +88,7 @@ builder.Services.AddScoped<IAlaService, AlaService>();
 builder.Services.AddScoped<IAgendamentoService, AgendamentoService>();
 builder.Services.AddScoped<IMedicamentoService, MedicamentoService>();
 builder.Services.AddScoped<IExameService, ExameService>();
+builder.Services.AddScoped<ISolicitacaoExameService, SolicitacaoExameService>();
 builder.Services.AddScoped<IPrescricaoService, PrescricaoService>();
 builder.Services.AddScoped<IConsumoItemService, ConsumoItemService>();
 builder.Services.AddScoped<IInteracaoService, InteracaoService>();

@@ -8,7 +8,7 @@ namespace GestaoHospitalarApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize] >>>> se você quiser proteger a rota, descomente esta linha e configure o JWT
+    //[Authorize] >>>> se você quiser proteger a rota, descomentar esta linha e configure o JWT
     public class LeitoController : ControllerBase
     {
         private readonly ILeitoService _leitoService;

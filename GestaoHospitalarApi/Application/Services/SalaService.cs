@@ -1,16 +1,20 @@
 using GestaoHospitalarApi.Application.DTOs;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
+using Microsoft.EntityFrameworkCore;
+using GestaoHospitalarApi.Infra.EF;
 
 namespace GestaoHospitalarApi.Application.Services
 {
     public class SalaService : ISalaService
     {
         private readonly ISalaRepository _salaRepository;
+        private readonly AppDbContext _context;
 
-        public SalaService(ISalaRepository salaRepository)
+        public SalaService(ISalaRepository salaRepository, AppDbContext context)
         {
             _salaRepository = salaRepository;
+            _context = context;
         }
 
         public async Task CadastrarAsync(SalaCadastroDto dto)
@@ -90,6 +94,25 @@ namespace GestaoHospitalarApi.Application.Services
                 IdAla = s.IdAla,
                 NomeAla = s.IdAlaNavigation?.NomeAla ?? "",
                 //AndarAla = s.IdAlaNavigation?.Andar ?? ""
+            });
+        }
+
+        public async Task<IEnumerable<object>> BuscarPacientesPorSalaAsync(int idSala)
+        {
+            // Busca prontuários ativos vinculados a esta sala
+            var prontuarios = await _context.Set<Prontuario>()
+                .Include(p => p.IdPacienteNavigation)
+                    .ThenInclude(pac => pac.IdPessoaNavigation)
+                .Where(p => p.IdSala == idSala && p.StatusProntuario == "ATIVO")
+                .ToListAsync();
+
+            // Mapeia para um formato genérico (Map<String, dynamic>) que o Flutter consiga ler
+            return prontuarios.Select(p => new
+            {
+                id_prontuario = p.IdProntuario,
+                id_paciente = p.IdPaciente,
+                nome_paciente = p.IdPacienteNavigation?.IdPessoaNavigation?.Nome ?? "Paciente Desconhecido",
+                // Você pode adicionar mais campos aqui se o ProntuarioEvolucaoForm precisar
             });
         }
     }

@@ -25,15 +25,7 @@ namespace GestaoHospitalarApi.Application.DTOs
         public string? NomeResponsavel { get; set; }
 
         // --- Dados do Convênio ---
-        // Pode ser nulo caso o paciente seja de atendimento particular
         public PacienteConvenioCadastroDto? Convenio { get; set; }
     }
 
-    // public class PacienteConvenioCadastroDto
-    // {
-    //     // Recebe o nome em vez do ID, conforme selecionado na lista do frontend
-    //     public string NomeConvenio { get; set; } = string.Empty; 
-    //     public string Numero { get; set; } = string.Empty;
-    //     public DateTime Validade { get; set; }
-    // }
 }

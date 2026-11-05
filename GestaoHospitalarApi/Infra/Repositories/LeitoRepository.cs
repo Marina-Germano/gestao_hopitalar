@@ -27,19 +27,16 @@ namespace GestaoHospitalarApi.Infra.Repositories
                 .ToListAsync();
         }
 
-        // AQUI ESTAVA O SEU ERRO! Agora ele tem a implementação real
         public async Task<IEnumerable<Leito>> ObterLeitosLivresAsync()
         {
             return await _context.Set<Leito>()
                 .Include(l => l.IdAlaNavigation)
-                // Busca tanto "Vago" (Regra que você definiu) quanto "LIVRE" (Regra do Banco) para garantir
                 .Where(l => l.Situacao == "Vago" || l.Situacao == "LIVRE" || l.Situacao == "VAGO")
                 .OrderBy(l => l.IdAlaNavigation.NomeAla)
                 .ThenBy(l => l.Numero)
                 .ToListAsync();
         }
 
-        // Caso a sua interface (ILeitoRepository) tenha o nome ObterLeitosVagosAsync, mantemos este aqui redirecionando
         public async Task<IEnumerable<Leito>> ObterLeitosVagosAsync()
         {
             return await ObterLeitosLivresAsync();

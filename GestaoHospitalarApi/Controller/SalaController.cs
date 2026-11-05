@@ -84,5 +84,19 @@ namespace GestaoHospitalarApi.Controllers
                 return BadRequest(ResultWrapper<object>.Erro(ex.Message));
             }
         }
+
+        [HttpGet("{idSala}/pacientes")]
+        public async Task<IActionResult> BuscarPacientes(int idSala)
+        {
+            try
+            {
+                var pacientes = await _salaService.BuscarPacientesPorSalaAsync(idSala);
+                return Ok(ResultWrapper<IEnumerable<object>>.Ok(pacientes));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ResultWrapper<object>.Erro(ex.Message));
+            }
+        }
     }
 }

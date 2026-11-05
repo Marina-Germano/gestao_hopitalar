@@ -9,6 +9,7 @@ namespace GestaoHospitalarApi.Application.Services
         Task<IEnumerable<SalaListagemDto>> ObterTodasAsync();
         Task<IEnumerable<SalaListagemDto>> ObterLivresAsync(); // Útil para a tela de encaminhamento
         Task<SalaCadastroDto?> ObterParaEdicaoAsync(int id);
+        Task<IEnumerable<object>> BuscarPacientesPorSalaAsync(int idSala);
         Task ExcluirAsync(int id);
     }
 }

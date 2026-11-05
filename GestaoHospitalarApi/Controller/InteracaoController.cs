@@ -7,6 +7,7 @@ namespace GestaoHospitalarApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    // [Authorize]
     public class InteracaoController : ControllerBase
     {
         private readonly IInteracaoService _service;

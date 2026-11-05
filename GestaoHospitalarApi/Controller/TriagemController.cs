@@ -7,6 +7,7 @@ namespace GestaoHospitalarApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    // [Authorize]
     public class TriagemController : ControllerBase
     {
         private readonly ITriagemService _triagemService;

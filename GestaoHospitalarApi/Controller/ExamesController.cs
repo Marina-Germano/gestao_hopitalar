@@ -8,6 +8,7 @@ namespace GestaoHospitalarApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    // [Authorize]
     public class ExamesController : ControllerBase
     {
         private readonly IGenericRepository<Exame> _repository;

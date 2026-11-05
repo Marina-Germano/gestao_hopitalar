@@ -10,5 +10,6 @@ namespace GestaoHospitalarApi.Application.DTOs
         public int IdAla { get; set; }
         public string NomeAla { get; set; } = string.Empty; // Ex: "Cardiologia"
         public string AndarAla { get; set; } = string.Empty;
+        public string NomePaciente { get; set; }
     }
 }

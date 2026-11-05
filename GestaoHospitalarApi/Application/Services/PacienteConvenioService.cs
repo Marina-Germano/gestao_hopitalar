@@ -36,7 +36,6 @@ namespace GestaoHospitalarApi.Application.Services
                 IdPaciente = pc.IdPaciente,
                 IdConvenio = pc.IdConvenio,
                 NomePaciente = pc.IdPacienteNavigation?.IdPessoaNavigation?.Nome ?? "",
-                // Troque "Nome" pela propriedade equivalente se o seu Convenio usar outro campo, ex: RazaoSocial
                 NomeConvenio = pc.IdConvenioNavigation?.NomeConvenio ?? "", 
                 NumeroCarteira = pc.NumeroCarteira,
                 Validade = pc.Validade.ToDateTime(TimeOnly.MinValue),

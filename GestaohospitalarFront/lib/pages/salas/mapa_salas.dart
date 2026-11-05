@@ -72,12 +72,32 @@ class _MapaSalasState extends State<MapaSalas> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
+            child: FutureBuilder<List<dynamic>>(
               future: _salaService.buscarPacientesPorSala(sala.id!),
               builder: (context, snapshot) {
-                // ... (seu código de ListView permanece igual)
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                final pacientes = snapshot.data!;
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                // 🟢 TRATAMENTO DE ERRO PARA EVITAR TELA TRAVADA
+                if (snapshot.hasError) {
+                  debugPrint("Erro ao buscar pacientes da sala ${sala.id}: ${snapshot.error}");
+                  return Center(
+                    child: Text("Erro ao carregar fila.", 
+                      style: TextStyle(fontSize: 12, color: Colors.red.shade700)
+                    )
+                  );
+                }
+
+                final pacientes = snapshot.data ?? [];
+                
+                if (pacientes.isEmpty) {
+                  return const Center(
+                    child: Text("Nenhum paciente aguardando.", 
+                      style: TextStyle(fontSize: 12, color: Colors.black54)
+                    )
+                  );
+                }
                 
                 return ListView.builder(
                   itemCount: pacientes.length,
@@ -86,7 +106,7 @@ class _MapaSalasState extends State<MapaSalas> {
                     return ListTile(
                       dense: true,
                       leading: const Icon(Icons.person, size: 16),
-                      title: Text(p['nome_paciente'], style: const TextStyle(fontSize: 12)),
+                      title: Text(p['nome_paciente'] ?? 'Desconhecido', style: const TextStyle(fontSize: 12)),
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(
                           builder: (_) => ProntuarioEvolucaoForm(dadosLeitoPaciente: p),

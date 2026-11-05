@@ -1,6 +1,6 @@
 
-using Microsoft.EntityFrameworkCore;
 using GestaoHospitalarApi.Application.DTOs.Escala;
+using Microsoft.EntityFrameworkCore;
 using GestaoHospitalarApi.Domain.Repositories;
 using GestaoHospitalarApi.Models;
 using GestaoHospitalarApi.Infra.EF;

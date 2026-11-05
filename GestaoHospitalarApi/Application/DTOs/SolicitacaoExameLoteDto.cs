@@ -4,6 +4,6 @@ namespace GestaoHospitalarApi.Application.DTOs
     {
         public int IdProntuario { get; set; }
         public int IdMedico { get; set; }
-        public List<int> IdsExames { get; set; } = new();
+        public List<int> IdExames { get; set; } = new();
     }
 }

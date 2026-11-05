@@ -6,8 +6,8 @@ namespace GestaoHospitalarApi.Application.DTOs
         public int IdMedico { get; set; }
         public int IdMedicamento { get; set; }
         public string? Dosagem { get; set; }
-        public string? Aplicacao { get; set; } // O campo que estava faltando
-        public string Horario { get; set; } = string.Empty; // O campo que estava faltando
+        public string? Aplicacao { get; set; }
+        public string Horario { get; set; } = string.Empty;
         public string? Observacao { get; set; }
     }
 

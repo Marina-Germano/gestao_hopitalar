@@ -143,7 +143,7 @@ CREATE TABLE prontuario (
     id_triagem INT NOT NULL,
     id_medico INT NOT NULL,
     id_sala INT,
-    risco_evasao VARCHAR(3) NOT NULL CHECK (risco_evasao IN ('SIM', 'NAO')),
+    risco_evasao VARCHAR(20) NOT NULL CHECK (risco_evasao IN ('ALTO','MEDIO', 'BAIXO')),
     isolamento VARCHAR(3) NOT NULL CHECK (isolamento IN ('SIM', 'NAO')),
     evolucao TEXT,
     data_abertura TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
